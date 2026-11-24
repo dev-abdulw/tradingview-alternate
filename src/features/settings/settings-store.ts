@@ -1,19 +1,20 @@
 import { z } from "zod";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { TIMEFRAMES, type Timeframe } from "@/lib/market-data/timeframes";
 import { storageKey, zustandStorage } from "@/lib/persistence/kv";
+
+export { TIMEFRAMES, type Timeframe };
 
 export const THEME_PREFS = ["dark", "light", "system"] as const;
 export const UPDOWN_SCHEMES = ["green-red", "blue-orange"] as const;
 export const DENSITIES = ["comfortable", "compact"] as const;
 export const NUMBER_FORMATS = ["en-US", "de-DE", "fr-FR", "en-IN"] as const;
-export const TIMEFRAMES = ["1m", "3m", "5m", "15m", "30m", "1h", "4h", "1D", "1W", "1M"] as const;
 
 export type ThemePref = (typeof THEME_PREFS)[number];
 export type UpDownPref = (typeof UPDOWN_SCHEMES)[number];
 export type Density = (typeof DENSITIES)[number];
 export type NumberFormat = (typeof NUMBER_FORMATS)[number];
-export type Timeframe = (typeof TIMEFRAMES)[number];
 
 export const settingsSchema = z.object({
   theme: z.enum(THEME_PREFS),

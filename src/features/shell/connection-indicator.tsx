@@ -1,12 +1,18 @@
 "use client";
 
+import type { ConnectionStatus } from "@/lib/market-data/types";
 import { cn } from "@/lib/utils/cn";
 import { Tooltip } from "@/ui/tooltip";
 
-export type ConnectionStatus = "live" | "reconnecting" | "offline" | "idle";
+export type { ConnectionStatus };
 
 const META: Record<ConnectionStatus, { label: string; dot: string; hint: string }> = {
   live: { label: "Live", dot: "bg-up", hint: "Streaming real-time prices from Binance." },
+  connecting: {
+    label: "Connecting",
+    dot: "bg-warning-solid animate-shimmer",
+    hint: "Connecting to Binance…",
+  },
   reconnecting: {
     label: "Reconnecting",
     dot: "bg-warning-solid animate-shimmer",
@@ -17,7 +23,7 @@ const META: Record<ConnectionStatus, { label: string; dot: string; hint: string 
     dot: "bg-danger",
     hint: "You're offline. Prices will resume when you reconnect.",
   },
-  idle: { label: "Not connected", dot: "bg-fg-subtle", hint: "Market data isn't connected yet." },
+  idle: { label: "Idle", dot: "bg-fg-subtle", hint: "No live prices are being watched right now." },
 };
 
 /** Live / Reconnecting / Offline dot with an accessible, polite status label. */

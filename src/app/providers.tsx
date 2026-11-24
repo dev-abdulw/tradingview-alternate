@@ -3,11 +3,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { useAppearanceSync, useResolvedTheme } from "@/features/settings/use-appearance";
+import { useVisibilityPause } from "@/lib/market-data/hooks";
 import { Toaster } from "@/ui/toast";
 import { TooltipProvider } from "@/ui/tooltip";
 
 function AppearanceSync() {
   useAppearanceSync();
+  useVisibilityPause();
   return null;
 }
 

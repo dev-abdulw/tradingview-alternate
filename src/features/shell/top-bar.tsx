@@ -17,15 +17,15 @@ import { CHART_TYPE_META, LAYOUT_META } from "@/features/chart/chart-meta";
 import {
   CHART_TYPES,
   LAYOUT_MODES,
-  parseSymbolKey,
   useChart,
   type ChartType,
   type LayoutMode,
 } from "@/features/chart/chart-store";
 import { TimeframePicker } from "@/features/chart/timeframe-picker";
+import { SymbolHeader } from "@/features/symbol/symbol-header";
 import { formatHotkey } from "@/lib/hooks/use-hotkeys";
+import { useConnectionStatus } from "@/lib/market-data/hooks";
 import { Button } from "@/ui/button";
-import { AssetClassChip } from "@/ui/chip";
 import { IconButton } from "@/ui/icon-button";
 import { LogoMark } from "@/ui/icons";
 import { Kbd } from "@/ui/kbd";
@@ -39,7 +39,6 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "@/ui/menu";
-import { Skeleton } from "@/ui/skeleton";
 import { toast } from "@/ui/toast";
 import { Tooltip } from "@/ui/tooltip";
 import { ConnectionIndicator } from "./connection-indicator";
@@ -57,6 +56,7 @@ function comingSoon(feature: string, phase: number) {
 }
 
 export function TopBar() {
+  const connection = useConnectionStatus();
   return (
     <header className="flex h-11 shrink-0 items-center gap-1 bg-panel px-2">
       <Link
@@ -83,7 +83,7 @@ export function TopBar() {
       <div className="flex-1" />
 
       <SearchTrigger />
-      <ConnectionIndicator status="idle" />
+      <ConnectionIndicator status={connection} />
       <SidebarToggle />
       <IconButton
         label="Settings"
@@ -93,30 +93,6 @@ export function TopBar() {
       />
       <ProfileMenu />
     </header>
-  );
-}
-
-function SymbolHeader() {
-  const symbolKey = useChart((s) => s.symbol);
-  const { symbol } = parseSymbolKey(symbolKey);
-  return (
-    <div className="flex min-w-0 items-center gap-3">
-      <Tooltip content="Change symbol" shortcut={formatHotkey(SHORTCUTS.search)}>
-        <button
-          type="button"
-          onClick={() => useUi.getState().setSearchOpen(true)}
-          className="flex h-7 items-center gap-2 rounded-control px-2 hover:bg-hover"
-        >
-          <span className="text-title font-semibold tracking-tight">{symbol}</span>
-          <AssetClassChip assetClass="crypto" className="hidden md:inline-flex" />
-        </button>
-      </Tooltip>
-      {/* Live price lands in Phase 2; the skeleton matches its footprint so nothing shifts. */}
-      <div className="hidden items-baseline gap-2 md:flex" aria-label="Price loading">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-3 w-12" />
-      </div>
-    </div>
   );
 }
 

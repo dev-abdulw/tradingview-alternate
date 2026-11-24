@@ -1,16 +1,17 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { DEFAULT_SETTINGS, type Timeframe } from "@/features/settings/settings-store";
+import type { SymbolKey } from "@/lib/market-data/types";
 import { storageKey, zustandStorage } from "@/lib/persistence/kv";
+
+export type { SymbolKey };
+export { parseSymbolKey } from "@/lib/market-data/symbol-key";
 
 export const CHART_TYPES = ["candles", "hollow", "bars", "line", "area", "heikin-ashi"] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
 export const LAYOUT_MODES = ["1", "2h", "2x2"] as const;
 export type LayoutMode = (typeof LAYOUT_MODES)[number];
-
-/** Symbols are always addressed as provider:market:symbol (e.g. binance:futures:XAUUSDT). */
-export type SymbolKey = `${string}:${string}:${string}`;
 
 type ChartState = {
   symbol: SymbolKey;
@@ -52,8 +53,3 @@ export const useChart = create<ChartState>()(
     },
   ),
 );
-
-export function parseSymbolKey(key: SymbolKey): { provider: string; market: string; symbol: string } {
-  const [provider = "", market = "", symbol = ""] = key.split(":");
-  return { provider, market, symbol };
-}

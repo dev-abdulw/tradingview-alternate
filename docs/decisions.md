@@ -59,3 +59,43 @@ An ESLint `no-restricted-syntax` rule rejects hex literals in `src/**` outside `
 - **TypeScript 5.9**, not 7.0: `create-next-app` for Next 16.4 scaffolds 5.x, and the native TS 7 compiler isn't yet the Next default.
 - **jsdom 28**: jsdom 31 requires Node ≥ 22.22, and this machine has 22.14. `engines.node` is set to `>=22.12`. Once Node is upgraded, jsdom can be bumped.
 - **ESLint 9**: `eslint-config-next` 16.4 targets the v9 flat config.
+
+## Phase 2: Market data layer
+
+Probe results are in `docs/market-data.md`.
+
+### D13. bStocks are detected by naming plus the risk band, never by a symbol list
+
+The `<TICKER>B` + USDT naming and the low-volatility `PERCENT_PRICE_BY_SIDE` band must both match. The detection is isolated in `binance/classify.ts`, with tests built on real `exchangeInfo` samples, so a future Binance change breaks one tested function rather than the UI. The display name drops the `B` (`AAPLB` → "AAPL"), while the wire symbol is kept verbatim.
+
+### D14. Futures exposes metals only in v1
+
+The brief asks for Crypto / Metal / Stock. Futures also lists energy commodities and 209 stock perpetuals. Showing stock perps next to bStocks would create two "AAPL" entries with different prices, and crypto perps would duplicate spot symbols. Widening this later is a one-line change in `classifyFutures`.
+
+### D15. One adapter class, configured per market
+
+Spot and futures differ in hosts, request weights, kline page size (1000 / 1500), schemas and classification, not in behavior. A single `BinanceProvider` takes a market config. Futures adds mark price and funding.
+
+### D16. Stream manager design
+
+- **One socket per market.** Streams are ref-counted.
+- **Diff-based control messages.** A 16ms coalescing window turns a list mount into one SUBSCRIBE; subscribe-then-unsubscribe within a frame sends nothing.
+- **Throttled under the limit.** Batches of 100 params; spot allows 5 control msgs/s and futures 10, and the manager stays one below each.
+- **Reconnect.** Equal-jitter exponential backoff from 0.5s up to 30s, then everything is resubscribed.
+- **24h limit.** A planned reconnect happens at 23.5h, before Binance's forced disconnect.
+- **Liveness.** A 30s watchdog catches half-open sockets.
+- **Fast failure.** Forced drops don't wait for the close handshake; the futures server can take seconds to answer it.
+- **Host failover** after two failed opens.
+- **Offline and hidden tabs.** Offline pauses retries until the `online` event. Hidden tabs unsubscribe foreground streams, and `background: true` streams (alerts, later) stay.
+
+### D17. UI updates are frame-batched and capped at 10/s per symbol
+
+`LiveStore` notifies at most once per animation frame per key, and no more than once per 100ms, always with the latest value. Rows read it through `useSyncExternalStore`. Raw ticks never re-render React directly.
+
+### D18. REST snapshot seeding
+
+A newly watched symbol triggers a batched `ticker/24hr` (spot: up to 100 symbols per request at weight 40) so a price shows immediately. A snapshot never overwrites a newer streamed value.
+
+### D19. Instruments cached for 6h, stale-on-error
+
+The compact `Instrument[]` (~200KB, not the raw MB) is persisted through the KeyValueStore. If a refresh fails, the cached list is served instead.

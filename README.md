@@ -2,7 +2,7 @@
 
 A multi-asset charting and watchlist app for crypto, gold, silver and tokenized US stocks, using Binance public market data.
 
-> Status: **Phase 1 (foundation and design system)** complete. See `docs/decisions.md` for design decisions.
+> Status: **Phase 2 (market data layer)** complete. See `docs/decisions.md` and `docs/market-data.md`. Live debug page at `/debug`.
 
 ## Quick start
 
@@ -47,3 +47,11 @@ docs/decisions.md      design decisions and their reasoning
 ## Design tokens
 
 Edit colors only in `src/ui/tokens/tokens.ts`, then run `pnpm tokens && pnpm contrast`. Components use the mapped Tailwind utilities: `bg-panel`, `bg-elevated`, `text-fg`, `text-fg-muted`, `text-fg-subtle`, `border-line`, `text-up`, `text-down`, `bg-accent-solid`, and so on. Never use raw colors.
+
+## Adding a data provider
+
+1. Implement `MarketDataProvider` (`src/lib/market-data/types.ts`) in `src/lib/market-data/<provider>/`, validating responses with zod at the boundary.
+2. Reuse `StreamManager` if the source speaks a subscribe/unsubscribe WebSocket protocol, and `WeightLimiter` / `getJson` for REST.
+3. Register it with `registerProvider("<provider>:<market>", () => new MyProvider())` in `src/lib/market-data/registry.ts`.
+
+Symbols are addressed everywhere as `provider:market:symbol`, so the UI picks the new provider up without changes.
