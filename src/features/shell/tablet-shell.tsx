@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { LazyChartArea } from "@/features/chart/lazy";
 import { SymbolDetailsPanel } from "@/features/symbol/symbol-details-panel";
-import { WatchlistPanel } from "@/features/watchlist/watchlist-panel";
+import { ListHost } from "@/features/watchlist/list-host";
 import { useHotkeys } from "@/lib/hooks/use-hotkeys";
 import { cn } from "@/lib/utils/cn";
 import { Sheet } from "@/ui/sheet";
@@ -43,7 +43,7 @@ export function TabletShell() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen} title="Watchlist">
         <div className="flex h-full flex-col">
           <div className="min-h-0 flex-1">
-            <WatchlistPanel onSymbolSelected={() => setSheetOpen(false)} />
+            <ListHost onSymbolSelected={() => setSheetOpen(false)} />
           </div>
           <div className={cn("shrink-0 border-t border-line", detailsCollapsed ? "h-9" : "h-[42%]")}>
             <SymbolDetailsPanel />

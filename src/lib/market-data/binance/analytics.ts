@@ -32,6 +32,7 @@ const perpInfo = z.object({
       quoteAsset: z.string(),
       contractType: z.string(),
       underlyingType: z.string(),
+      underlyingSubType: z.array(z.string()).optional(),
     }),
   ),
 });
@@ -41,6 +42,8 @@ export type PerpCatalog = {
   /** USDT-margined perpetuals that are trading, by symbol → underlying type. */
   perps: Map<string, string>;
   fundingHours: Map<string, number>;
+  /** Perp base asset → Binance sector tags (crypto perps only). */
+  sectorTags: Map<string, string[]>;
 };
 
 export async function fetchPerpCatalog(signal?: AbortSignal): Promise<PerpCatalog> {
@@ -49,12 +52,19 @@ export async function fetchPerpCatalog(signal?: AbortSignal): Promise<PerpCatalo
     getJson(`${F}/fapi/v1/fundingInfo`, fundingInfo, opts(1, signal)),
   ]);
   const perps = new Map<string, string>();
+  const sectorTags = new Map<string, string[]>();
   for (const s of info.symbols) {
     if (s.status !== "TRADING" || s.quoteAsset !== "USDT") continue;
     if (s.contractType !== "PERPETUAL" && s.contractType !== "TRADIFI_PERPETUAL") continue;
     perps.set(s.symbol, s.underlyingType);
+    if (s.underlyingType === "COIN" && s.underlyingSubType?.length)
+      sectorTags.set(s.baseAsset, s.underlyingSubType);
   }
-  return { perps, fundingHours: new Map(funding.map((f) => [f.symbol, f.fundingIntervalHours])) };
+  return {
+    perps,
+    fundingHours: new Map(funding.map((f) => [f.symbol, f.fundingIntervalHours])),
+    sectorTags,
+  };
 }
 
 /**

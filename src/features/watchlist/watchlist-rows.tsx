@@ -34,7 +34,7 @@ import { COLUMNS, useWatchlistPrefs, type Column } from "./watchlist-prefs";
 
 /* --------------------------------- cells ---------------------------------- */
 
-const LiveCells = memo(function LiveCells({
+export const LiveCells = memo(function LiveCells({
   symbolKey,
   decimals,
   columns,

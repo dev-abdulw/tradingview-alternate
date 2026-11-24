@@ -335,3 +335,13 @@ TradingView measures change from the **daily candle open at 00:00 UTC** (05:00 i
 - **No flicker:** in daily mode a cell shows its skeleton until the open is known, so it never flashes the rolling value first.
 - **Scope:** watchlist cells and sorting, the top bar, the tab title and the phone header follow the setting. The details panel stays explicitly "24h" (24h high/low/range), and the search palette's figures come from the whole-market rolling snapshot, so they carry a visible "24h" label.
 - **Verified live:** BTC, ETH, PAXG and AAPL matched an independent trading-day calculation to 0.01%.
+
+### D57. Sectors view (user request, 2026-11-24)
+
+The goal is sector rotation: when one narrative pumps, laggards in the same sector often follow. The list panel now has **Watchlist | Sectors** on desktop, tablet and phone.
+
+- **Groups:** Binance's own sector tags (`underlyingSubType` on USDⓈ-M perps): Layer 1, Layer 2, DeFi, AI, Meme, Infrastructure, Gaming, RWA, Payments, Proof of work, Storage, NFT, Metaverse and Chinese community. Generic tags ("Crypto", "Alpha") are skipped. Members must have a Binance **spot** USDT pair (`1000PEPE` → PEPE).
+- **Ranking:** top 10 by **market cap** from CoinGecko's free, keyless API (top 1,000 coins, cached 6h). It falls back to 24h volume if CoinGecko is unavailable. Prices and daily change stay live from Binance and follow the Change % setting (TradingView basis by default).
+- **Plus:** **US stocks** (top 10 bStocks by 24h volume; tokenized stocks have no free market-cap source) and **Gold** (PAXG, XAUT).
+- **Kept simple by request:** each row shows the same columns as the watchlist; there's no sector average or laggard scoring. Rows chart on click, "+" adds to the active list, and each header can copy the sector into a new watchlist.
+- **Caveats, as Binance tags them:** BTC is under "Proof of work", not "Layer 1", and some tags are loose (e.g. XLM under Layer 2). The stocks group, ranked by volume, includes leveraged ETFs (SOXL, SOXS).

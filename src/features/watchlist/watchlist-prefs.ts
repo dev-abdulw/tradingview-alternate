@@ -21,6 +21,9 @@ type Prefs = {
   sort: Sort;
   /** Which horizon the watchlist Signal column shows. */
   signalHorizon: "intraday" | "swing";
+  /** List panel view: the user's watchlists or the auto-built sector groups. */
+  panelView: "watchlist" | "sectors";
+  setPanelView: (v: "watchlist" | "sectors") => void;
   toggleSignalHorizon: () => void;
   setActiveList: (id: string) => void;
   toggleColumn: (c: Column) => void;
@@ -35,6 +38,8 @@ export const useWatchlistPrefs = create<Prefs>()(
       columns: { last: true, change: false, changePct: true, volume: true, signal: false },
       sort: null,
       signalHorizon: "swing",
+      panelView: "watchlist",
+      setPanelView: (panelView) => set({ panelView }),
       toggleSignalHorizon: () =>
         set((s) => ({ signalHorizon: s.signalHorizon === "swing" ? "intraday" : "swing" })),
       setActiveList: (activeListId) => set({ activeListId }),

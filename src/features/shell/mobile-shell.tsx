@@ -8,7 +8,7 @@ import { useChart } from "@/features/chart/chart-store";
 import { LazyMobileChart } from "@/features/chart/lazy";
 import { SettingsForm } from "@/features/settings/settings-dialog";
 import { useSettings } from "@/features/settings/settings-store";
-import { WatchlistPanel } from "@/features/watchlist/watchlist-panel";
+import { ListHost } from "@/features/watchlist/list-host";
 import { useConnectionStatus, useInstrument, useTicker } from "@/lib/market-data/hooks";
 import { changeFor } from "@/lib/market-data/change";
 import { formatPercent, formatPrice } from "@/lib/market-data/precision";
@@ -41,7 +41,7 @@ export function MobileShell() {
         <MobileHeader tab={tab} onBack={() => setTab("watchlist")} />
         <ConnectionBanner />
         <main className="min-h-0 flex-1">
-          {tab === "watchlist" && <WatchlistPanel onSymbolSelected={() => setTab("chart")} />}
+          {tab === "watchlist" && <ListHost onSymbolSelected={() => setTab("chart")} />}
           {tab === "chart" && <LazyMobileChart />}
           {tab === "alerts" && <AlertsList className="h-full bg-panel" />}
           {tab === "settings" && (

@@ -17,7 +17,7 @@ import { LazyChartArea } from "@/features/chart/lazy";
 import { CommandPalette } from "@/features/search/command-palette";
 import { SettingsDialog } from "@/features/settings/settings-dialog";
 import { SymbolDetailsPanel } from "@/features/symbol/symbol-details-panel";
-import { WatchlistPanel } from "@/features/watchlist/watchlist-panel";
+import { ListHost } from "@/features/watchlist/list-host";
 import { useHotkeys } from "@/lib/hooks/use-hotkeys";
 import { useFormFactor } from "@/lib/hooks/use-media";
 import { ConnectionBanner } from "./connection-banner";
@@ -140,7 +140,7 @@ function DesktopShell() {
                 onLayoutChanged={side.onLayoutChanged}
               >
                 <Panel id="watchlist" minSize={180}>
-                  <WatchlistPanel />
+                  <ListHost />
                 </Panel>
                 <Separator aria-label="Resize symbol details" />
                 <Panel

@@ -48,6 +48,7 @@ Requires **Node ≥ 22.12** and **pnpm 11**. No API keys: market data comes from
   - Drag to reorder; sortable, optional columns.
   - Live tick flashes; virtualized (200 rows scroll at 60 fps).
   - Undo for every delete.
+- **Sectors:** Binance's sector tags (Layer 1, DeFi, AI, Meme, …), top 10 coins each by market cap (CoinGecko) with live daily change, plus US stocks and gold; copy any sector into a watchlist.
 - **Search:** ⌘K / `/`. Fuzzy, volume-aware ranking, category tabs, recents and an "Add to list" picker.
 - **Chart:** Lightweight Charts v5.
   - Six chart types, a volume pane, and timezone- and locale-aware axes.
