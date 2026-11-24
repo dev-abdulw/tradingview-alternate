@@ -16,15 +16,31 @@ const PAGES = 4; // top 1000 coins by market cap
 /** Uppercase ticker → market cap (USD). On ticker collisions the larger coin wins. */
 export async function fetchMarketCaps(signal?: AbortSignal): Promise<Map<string, number>> {
   const kv = getKeyValueStore();
+  let stale: Map<string, number> | null = null;
   const cached = kv.get(KEY);
   if (cached) {
     try {
       const doc = JSON.parse(cached) as { at: number; caps: [string, number][] };
-      if (Date.now() - doc.at < TTL && Array.isArray(doc.caps)) return new Map(doc.caps);
+      if (Array.isArray(doc.caps)) {
+        if (Date.now() - doc.at < TTL) return new Map(doc.caps);
+        stale = new Map(doc.caps); // rankings barely move; better than nothing if the refresh fails
+      }
     } catch {
       /* refetch */
     }
   }
+  try {
+    return await fetchFresh(kv, signal);
+  } catch (e) {
+    if (stale && !signal?.aborted) return stale;
+    throw e;
+  }
+}
+
+async function fetchFresh(
+  kv: ReturnType<typeof getKeyValueStore>,
+  signal: AbortSignal | undefined,
+): Promise<Map<string, number>> {
   const caps = new Map<string, number>();
   for (let page = 1; page <= PAGES; page++) {
     const rows = await getJson(

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ListPlus, Plus, RefreshCw } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useChart } from "@/features/chart/chart-store";
 import { useSettings } from "@/features/settings/settings-store";
 import { SymbolIcon } from "@/features/watchlist/symbol-icon";
@@ -29,6 +29,7 @@ import { Skeleton } from "@/ui/skeleton";
 import { toast } from "@/ui/toast";
 
 const HOUR = 3_600_000;
+const CAPS_WAIT_MS = 8_000;
 
 /** Sector groups: Binance's sector tags, top 10 by market cap, plus US stocks and gold. */
 export function useSectorGroups() {
@@ -48,11 +49,18 @@ export function useSectorGroups() {
     gcTime: Infinity,
     retry: 1,
   });
+  // Don't hold the view hostage to CoinGecko (rate limits, slow mobile networks):
+  // after a short wait, rank by 24h volume and re-rank once caps arrive.
+  const [capsTimedOut, setCapsTimedOut] = useState(false);
+  useEffect(() => {
+    if (!caps.isPending) return;
+    const t = setTimeout(() => setCapsTimedOut(true), CAPS_WAIT_MS);
+    return () => clearTimeout(t);
+  }, [caps.isPending]);
 
   const groups = useMemo<SectorGroup[] | null>(() => {
     if (!ready || !catalog.data) return null;
-    // Wait briefly for caps; if CoinGecko fails, rank by volume instead.
-    if (caps.isPending) return null;
+    if (caps.isPending && !capsTimedOut) return null;
     const volumes = new Map<string, number>();
     for (const [k, t] of snapshot) volumes.set(k, t.quoteVolume);
     return buildSectorGroups({
@@ -61,12 +69,13 @@ export function useSectorGroups() {
       marketCaps: caps.data ?? null,
       volumes,
     });
-  }, [ready, catalog.data, caps.isPending, caps.data, snapshot, instruments]);
+  }, [ready, catalog.data, caps.isPending, capsTimedOut, caps.data, snapshot, instruments]);
 
   return {
     groups,
     error: catalog.error ? (catalog.error as Error).message : null,
-    capsUnavailable: caps.isError,
+    capsUnavailable: caps.isError || (caps.isPending && capsTimedOut),
+    capsLoading: caps.isPending && capsTimedOut,
     retry: () => {
       void catalog.refetch();
       void caps.refetch();
@@ -75,7 +84,7 @@ export function useSectorGroups() {
 }
 
 export function SectorsPanel({ onSymbolSelected }: { onSymbolSelected?: (key: SymbolKey) => void }) {
-  const { groups, error, capsUnavailable, retry } = useSectorGroups();
+  const { groups, error, capsUnavailable, capsLoading, retry } = useSectorGroups();
   const columns = useWatchlistPrefs((s) => s.columns);
   const keys = useMemo(() => (groups ?? []).flatMap((g) => g.items.map((i) => i.key)), [groups]);
   useRetainTickers(keys); // one live subscription per symbol, shared across groups
@@ -109,7 +118,9 @@ export function SectorsPanel({ onSymbolSelected }: { onSymbolSelected?: (key: Sy
       </div>
       {capsUnavailable && (
         <p className="shrink-0 bg-warning-muted px-3 py-1.5 text-cell text-warning">
-          Market caps unavailable right now — ranked by 24h volume.
+          {capsLoading
+            ? "Market caps still loading — ranked by 24h volume for now."
+            : "Market caps unavailable right now — ranked by 24h volume."}
         </p>
       )}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" role="list" aria-label="Sectors">
@@ -145,6 +156,7 @@ function SectorSection({
   template: string;
   onSymbolSelected: ((key: SymbolKey) => void) | undefined;
 }) {
+  const touch = useCoarsePointer();
   const copy = () => {
     const store = useWatchlists.getState();
     const id = store.createList(group.label);
@@ -155,13 +167,18 @@ function SectorSection({
   };
   return (
     <section role="listitem" aria-label={group.label}>
-      <div className="sticky top-0 z-[1] flex h-8 items-end gap-2 bg-panel px-3 pb-1">
+      <div
+        className={cn(
+          "sticky top-0 z-[1] flex items-end gap-2 bg-panel px-3 pb-1",
+          touch ? "h-12 items-center pb-0" : "h-8",
+        )}
+      >
         <span className="meta-label">{group.label}</span>
         <span className="text-meta text-fg-disabled">
           top {Math.min(group.items.length, MAX_PER_GROUP)} by {group.rankedBy}
         </span>
         <IconButton
-          size="xs"
+          size={touch ? "lg" : "xs"}
           className="ml-auto"
           label={`Copy ${group.label} to a new watchlist`}
           icon={<ListPlus />}
