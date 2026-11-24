@@ -40,6 +40,8 @@ export type Kline = {
   volume: number;
   quoteVolume: number;
   trades: number;
+  /** Base volume from aggressive (market) buys — order-flow analysis. */
+  takerBuyVolume?: number;
   /** False while the candle is still forming. */
   final: boolean;
 };

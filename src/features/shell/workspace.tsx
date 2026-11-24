@@ -12,6 +12,7 @@ import {
 } from "react-resizable-panels";
 import { AlertDialog } from "@/features/alerts/alert-dialog";
 import { AlertEngine } from "@/features/alerts/alert-engine";
+import { SignalWatchEngine } from "@/features/signals/signal-watch";
 import { LazyChartArea } from "@/features/chart/lazy";
 import { CommandPalette } from "@/features/search/command-palette";
 import { SettingsDialog } from "@/features/settings/settings-dialog";
@@ -60,6 +61,7 @@ export function Workspace() {
       <AlertDialog />
       <ShortcutsDialog />
       <AlertEngine />
+      <SignalWatchEngine />
     </>
   );
 }

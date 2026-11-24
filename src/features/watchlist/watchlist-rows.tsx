@@ -27,7 +27,8 @@ import {
 import { Skeleton } from "@/ui/skeleton";
 import { FlagDot, FlagMenuItems } from "./flags";
 import { SymbolIcon } from "./symbol-icon";
-import { COLUMNS, type Column } from "./watchlist-prefs";
+import { SignalCell } from "@/features/signals/signal-cell";
+import { COLUMNS, useWatchlistPrefs, type Column } from "./watchlist-prefs";
 
 /* --------------------------------- cells ---------------------------------- */
 
@@ -44,12 +45,14 @@ const LiveCells = memo(function LiveCells({
 }) {
   const t = useTicker(symbolKey);
   const flash = useTickFlash(t?.last);
+  const signalHorizon = useWatchlistPrefs((s) => s.signalHorizon);
 
   const cells: Record<Column, React.ReactNode> = {
     last: null,
     change: null,
     changePct: null,
     volume: null,
+    signal: null,
   };
   if (!t || decimals === undefined) {
     for (const c of COLUMNS)
@@ -79,6 +82,8 @@ const LiveCells = memo(function LiveCells({
     );
     cells.volume = <span className="text-fg-muted">{formatVolume(t.quoteVolume, locale)}</span>;
   }
+  // The signal column has its own data source (candles), independent of the live ticker.
+  cells.signal = columns.signal ? <SignalCell symbolKey={symbolKey} horizon={signalHorizon} /> : null;
 
   return (
     <>

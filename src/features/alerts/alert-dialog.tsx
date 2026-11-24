@@ -18,6 +18,8 @@ import { IconButton } from "@/ui/icon-button";
 import { Input, Label } from "@/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/ui/popover";
 import { SegmentedControl } from "@/ui/tabs";
+import { useSignalWatches } from "@/features/signals/signal-watch";
+import { toSymbolKey } from "@/lib/market-data/symbol-key";
 import { requestNotificationPermission } from "./alert-engine";
 import { alertKey, useAlerts, type AlertRow } from "./alerts-store";
 
@@ -179,6 +181,41 @@ export function AlertsList({ className }: { className?: string }) {
           ))}
         </ul>
       )}
+      <SignalWatchList />
+    </div>
+  );
+}
+
+function SignalWatchList() {
+  const rows = useSignalWatches((s) => s.rows);
+  const instruments = useInstrumentMap();
+  const list = Object.values(rows);
+  if (list.length === 0) return null;
+  return (
+    <div className="shrink-0 border-t border-line">
+      <div className="meta-label px-3 pt-2 pb-1">Signal alerts</div>
+      <ul className="pb-1">
+        {list.map((w) => {
+          const name = instruments.get(toSymbolKey(w))?.displayName ?? w.symbol;
+          return (
+            <li key={w.id} className="group flex items-center gap-2 px-3 py-1 hover:bg-hover">
+              <span className="min-w-0 flex-1 truncate text-cell">
+                <span className="font-semibold text-fg">{name}</span>{" "}
+                <span className="text-fg-muted">
+                  {w.horizon === "swing" ? "swing" : "intraday"} verdict changes
+                  {w.last_verdict ? ` · now ${w.last_verdict}` : ""}
+                </span>
+              </span>
+              <IconButton
+                size="xs"
+                label={`Stop ${name} signal alerts`}
+                icon={<Trash2 />}
+                onClick={() => useSignalWatches.getState().remove(w.id)}
+              />
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

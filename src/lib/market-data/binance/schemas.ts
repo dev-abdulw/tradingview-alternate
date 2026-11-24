@@ -59,7 +59,7 @@ export const futuresExchangeInfo = z.looseObject({
 
 /** [openTime, o, h, l, c, v, closeTime, quoteVol, trades, takerBase, takerQuote, ignore] */
 export const klineRow = z
-  .tuple([z.number(), num, num, num, num, num, z.number(), num, z.number()])
+  .tuple([z.number(), num, num, num, num, num, z.number(), num, z.number(), num])
   .rest(z.unknown());
 export const klines = z.array(klineRow);
 
@@ -104,6 +104,7 @@ export const wsKline = z.looseObject({
     q: num,
     n: z.number(),
     x: z.boolean(),
+    V: num.optional(),
   }),
 });
 

@@ -261,6 +261,8 @@ function ColumnsMenu() {
 
 function ColumnHeader() {
   const columns = useWatchlistPrefs((s) => s.columns);
+  const signalHorizon = useWatchlistPrefs((s) => s.signalHorizon);
+  const toggleSignalHorizon = useWatchlistPrefs((s) => s.toggleSignalHorizon);
   const sort = useWatchlistPrefs((s) => s.sort);
   const cycle = useWatchlistPrefs((s) => s.cycleSort);
 
@@ -305,7 +307,22 @@ function ColumnHeader() {
       style={{ gridTemplateColumns: gridTemplate(columns) }}
     >
       {head("symbol", "Symbol", "left")}
-      {COLUMNS.filter((c) => columns[c]).map((c) => head(c, COLUMN_META[c].short, "right"))}
+      {COLUMNS.filter((c) => columns[c]).map((c) =>
+        c === "signal" ? (
+          <button
+            key={c}
+            type="button"
+            onClick={toggleSignalHorizon}
+            title="Technical signal — click to switch Swing / Intraday"
+            aria-label={`Signal column shows ${signalHorizon}. Switch to ${signalHorizon === "swing" ? "intraday" : "swing"}`}
+            className="meta-label flex h-full items-center justify-end hover:text-fg-muted"
+          >
+            {signalHorizon === "swing" ? "Sig·S" : "Sig·I"}
+          </button>
+        ) : (
+          head(c, COLUMN_META[c].short, "right")
+        ),
+      )}
     </div>
   );
 }

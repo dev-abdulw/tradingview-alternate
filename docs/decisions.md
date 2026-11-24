@@ -271,3 +271,58 @@ Lighthouse accessibility is **100** on desktop and mobile, and an axe scan (WCAG
 ### D48. End-to-end tests use live data
 
 Playwright runs against a production build with real Binance data, the only honest test of streaming behavior. Assertions cover structure, behavior and timing, never exact prices. CI retries once.
+
+## Signals: per-symbol bullish/bearish scorecard
+
+### D49. A transparent rule-based scorecard, not a black-box prediction
+
+Each factor is a plain rule with a −2…+2 lean, a weight and a one-line reason; the weighted sum gives −100…+100. Bullish/Bearish starts at ±35 and "Strongly" at ±65. You can always see _why_ it says what it says. Machine learning can come later, on top of the same factor features.
+
+### D50. Two horizons, top-down timeframes
+
+- **Intraday:** 1h candles with a 4h context, judged 4 hours ahead.
+- **Swing:** 1D candles with a 1W context, judged 3 days ahead.
+
+The context timeframe is the higher one (classic top-down analysis), and it's rebuilt from the main candles (4h buckets on UTC, weeks starting Monday as on Binance). That keeps live and backtest identical and lets the backtest include timeframe agreement. Scores are taken on the **last closed candle**, so they don't flicker intrabar and match the backtest exactly.
+
+### D51. Factors and the data behind them (all free and keyless)
+
+| Group               | Factors                                                                                                                                                                             | Source                        |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| Trend               | EMA 20/50/200 position and stacking; swing structure (higher/lower highs and lows); context-timeframe trend                                                                         | Spot klines                   |
+| Momentum            | RSI zones plus divergences against confirmed swing points; MACD histogram direction and recent crosses                                                                              | Spot klines                   |
+| Order flow          | Relative volume (3 bars vs 20-bar average); aggressive buy share (taker-buy volume, now kept from klines); order-book imbalance within ±1% (intraday only)                          | Spot klines, `/api/v3/depth`  |
+| Futures positioning | Funding (fades extremes, normalized to an 8h basis because some contracts fund every 4h); open interest vs price, read in four quadrants; top traders vs crowd; futures taker ratio | `fapi` + `/futures/data/*`    |
+| Relative strength   | vs BTC (crypto) or SPY (stocks)                                                                                                                                                     | Spot klines                   |
+| Sentiment           | Crypto Fear & Greed, fading extremes (swing only)                                                                                                                                   | alternative.me (CORS-enabled) |
+| Volatility          | Bollinger-width percentile (squeeze or expansion) and ATR. It doesn't add direction; it adjusts agreement                                                                           | Spot klines                   |
+
+**Futures twins.** Crypto uses the same-base perp, including `1000X` contracts, whose ratios don't depend on scale. PAXG and XAUT use the gold perp. bStocks use the equity perp of the same ticker. The app never trades futures; they're read for analysis only.
+
+**Dropped: liquidations.** Binance removed public liquidation history (`allForceOrders` returns an error page). A live stream only counts from the moment the app opens, which is too thin to score honestly.
+
+### D52. "Top traders vs crowd" uses the symbol's own history
+
+Top traders' long/short ratio sits structurally below the all-accounts ratio (retail is long by count). On live data, a raw comparison scored −2 for nearly every symbol. The factor now z-scores today's gap against the last 30 periods and only flags unusual positioning.
+
+### D53. Backtest per symbol, with an honest baseline
+
+- **Method:** the technical factors are replayed over up to 3,000 hourly or 1,000 daily candles. Each bar uses only data available then: pivots count only after their confirmation bars, and context candles only once fully closed. A unit test proves scoring bar _i_ with future data equals scoring it with data cut at _i_.
+- **Reporting:** hit rate for Bullish/Bearish calls **against the baseline** (how often price rose or fell anyway).
+  - Under 30 cases: "not enough history".
+  - Within ±3 points: "no measurable edge".
+  - Otherwise: a positive edge or "worse than chance".
+- **What it found on launch day:** across BTC, SOL, NVDA, PAXG and AAPL, most calls were within a few points of baseline, i.e. simple technical rules have little edge at these horizons. The UI says so instead of implying certainty.
+- **Wording:** "confidence" was renamed **Agreement**, the share of factors that agree, so it isn't mistaken for a probability of being right.
+- **Scope:** futures positioning, the order book and sentiment aren't in the backtest. Binance keeps only about 30 days of positioning data.
+- **Speed:** ~25ms for 3,000 bars on the main thread, so no Web Worker is needed. A test guards it; a per-call `Intl.NumberFormat` once made it 20× slower.
+
+### D54. Where it lives
+
+- **Desktop and tablet:** the sidebar's lower panel is **Details | Signals**, with two verdict cards (gauge, agreement, edge badge, flip-alert bell), the backtest sentence, a volatility note and the grouped factors. Each factor expands to its numbers.
+- **Phone:** **Chart | Signals** inside the Chart tab.
+- **Watchlist:** an optional **Signal** column (off by default) shows technical-only ▲ / • / ▼. Its header toggles Swing / Intraday. Only visible rows fetch, because pulling positioning for a whole list would hit rate limits.
+
+### D55. Verdict-flip alerts
+
+Toggled per symbol and horizon from the card's bell, they're evaluated **once per closed candle** (30s after the close), using the same scorecard with hysteresis: enter at ±35, leave only after crossing back past ±25. They notify through the shared toast, notification and chime path, are listed under Alerts, and are stored behind the collection repository.

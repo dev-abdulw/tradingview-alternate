@@ -247,6 +247,7 @@ export class BinanceProvider implements MarketDataProvider {
       closeTime: r[6],
       quoteVolume: r[7],
       trades: r[8],
+      takerBuyVolume: r[9],
       final: r[6] < now,
     }));
   }
@@ -367,6 +368,7 @@ export class BinanceProvider implements MarketDataProvider {
           volume: k.v,
           quoteVolume: k.q,
           trades: k.n,
+          ...(k.V !== undefined ? { takerBuyVolume: k.V } : {}),
           final: k.x,
         });
       },

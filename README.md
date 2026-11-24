@@ -56,6 +56,7 @@ Requires **Node ≥ 22.12** and **pnpm 11**. No API keys: market data comes from
   - Indicators: SMA, EMA, Bollinger Bands, VWAP, RSI, MACD.
   - Drawings: horizontal line, trend line, ray, rectangle, Fibonacci.
   - 1 / 2 / 2×2 layouts with symbol and crosshair sync.
+- **Signals:** a per-symbol scorecard for Intraday (1h/4h) and Swing (1D/1W): trend, momentum, order flow, futures positioning (funding, open interest, long/short), relative strength and sentiment, each with a reason; a −100…+100 verdict; a backtest per symbol with its baseline; alerts when the verdict flips. A rule-based reading, not financial advice.
 - **Alerts:** above / below / crossing. Toast, browser notification and an optional sound. Works in a background tab.
 - **Phone and tablet:** bottom tab bar, swipe to remove or flag, long-press to drag, slide-over watchlist on tablets.
 - **Settings:** theme (dark / light / system), colorblind-safe up/down colors, density, time zone (default Asia/Karachi), number format, default timeframe and backup.
@@ -84,13 +85,15 @@ src/
     search/             ⌘K command palette, recents
     chart/              ChartController (imperative Lightweight Charts owner), legend, indicators UI,
                         drawings (geometry · pane primitive · store), multi-chart grid
-    alerts/             store, client-side engine, dialog and list
+    alerts/             store, client-side engine, dialog and list, shared notify()
+    signals/            Signals panel, data hooks, watchlist signal column, verdict-flip alerts
     symbol/             live symbol header, details panel
     settings/           settings store, theme boot script, settings form
   lib/
     market-data/        provider interface + registry, Binance adapters, WebSocket StreamManager,
                         candle cache, frame-batched live store, precision, search ranking, React hooks
     indicators/         pure, tested indicator math (Pine-compatible)
+    signals/            scorecard engine: factors, aggregation, no-lookahead backtest, edge assessment
     alerts/             pure alert evaluation (shared with a future server worker)
     persistence/        KeyValueStore, WatchlistRepository, CollectionRepository, fractional ordering, backup
     hooks/              hotkeys, media queries, tick flash

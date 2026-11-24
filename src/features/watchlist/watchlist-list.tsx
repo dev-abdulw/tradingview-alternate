@@ -67,6 +67,7 @@ function comparator(sort: NonNullable<Sort>, instruments: ReadonlyMap<string, In
   const value = (s: WatchlistSymbolRow): number | string | undefined => {
     const key = itemKey(s);
     if (sort.column === "symbol") return (instruments.get(key)?.displayName ?? s.symbol).toUpperCase();
+    if (sort.column === "signal") return undefined; // not sortable (header toggles the horizon)
     const t = tickerFeed.store.get(key);
     if (!t) return undefined;
     return { last: t.last, change: t.change, changePct: t.changePct, volume: t.quoteVolume }[sort.column];
