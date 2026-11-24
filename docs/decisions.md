@@ -1,0 +1,61 @@
+# Design & engineering decisions
+
+Decisions the brief left open, with the reasoning behind each choice. Newest last.
+
+## Phase 1 — Foundation
+
+### D1. Tokens live in TypeScript; CSS is generated from them
+
+`src/ui/tokens/tokens.ts` is the single source of truth. `pnpm tokens` writes `src/app/tokens.css`. `pnpm contrast` checks the same object. A unit test fails if the generated CSS drifts from the source.
+**Why:** The contrast check and the shipped CSS can never disagree. Charts (Phase 4) can also read typed token names instead of scraping CSS.
+
+### D2. Token refinements to pass WCAG AA (all 148 pairs pass)
+
+- `text-tertiary` (dark) `#5F6878` → `#8791A3`. The original measured 3.4:1 on panels, and 11px uppercase meta labels need 4.5:1.
+- `accent` (dark) `#3B82F6` → `#5B97F7` for text and focus. White text on `#3B82F6` is only 3.7:1, so filled buttons use a separate `accent-solid` (`#2F6FE4`, 5.0:1 with white). The roles stay the same; filled buttons get their own token.
+- `down` (dark) `#F6465D` → `#FF5B6E`. The original failed on `bg-active`, which is exactly where a selected row shows its red change %.
+- `warning` was split into `warning` (text, darker amber in light: `#8F6500`) and `warning-solid` (fill `#F0B90B` with dark text). One amber cannot be both readable text on white and a fill that carries text.
+- Light up/down: `#077A55` / `#C8243E`. Colorblind light: `#1A62D0` / `#B04A00`.
+- **Exempt by design:** 1px borders are decorative. Inputs are identified by their fill plus placeholder text, not by the border, so `border-*` is not held to the 3:1 non-text rule. The focus ring (`accent`) is checked at ≥3:1.
+
+### D3. Theme is scoped by `data-theme`, not `prefers-color-scheme` media queries
+
+The attribute is set on `<html>` by an inline boot script before first paint, which follows the Next 16 "preventing flash" guide. Because it is an attribute, any subtree can render in the other theme (the `/design` page shows both side by side). The colorblind scheme is a second attribute (`data-updown`) that composes with either theme. I wrote this myself instead of using `next-themes`, because that package only manages one attribute.
+
+### D4. The workspace renders only in the browser (`use(browser())` + shaped skeleton)
+
+Panel sizes, theme and chart preferences all live in client storage. A server render would guess them wrong and shift on hydration. Instead, the server sends `ShellSkeleton` with the same chrome geometry, and React 19.3's `use(browser())` defers the real workspace to the client. Metadata and SEO content stay server-rendered.
+
+### D5. Persistence seam: `KeyValueStore`
+
+Preference-sized state (settings, panel sizes, chart prefs) goes through `lib/persistence/kv.ts`. It degrades to memory if storage is blocked. Phase 3/5 add a separate domain `Repository` (watchlists, alerts, drawings) with Local and Supabase implementations; this seam is only for small preference blobs that will sync via `profiles.settings`.
+
+### D6. Persisted settings are validated field by field
+
+A corrupt or old value for one field falls back to its default without wiping the user's other choices.
+
+### D7. Indicator panes will be native Lightweight Charts panes
+
+LWC v5 supports multiple panes with their own resizable separators and a shared time scale. So RSI/MACD will live inside the chart rather than in a separate outer panel. That keeps crosshair and scroll in sync for free. The outer layout therefore only splits chart | sidebar and watchlist | details.
+
+### D8. Sidebar keeps its pixel width when the window resizes
+
+`groupResizeBehavior="preserve-pixel-size"` on the sidebar and details panels: widening the window gives the extra space to the chart, as in TradingView. The details panel collapses to its 36px header (not to zero), so it stays discoverable.
+
+### D9. Shortcuts chosen to avoid browser conflicts
+
+`⌘K`/`Ctrl+K` and `/` open search. `⌥W` toggles the watchlist and `⌥I` toggles details. Matching uses physical key codes, because Option+W types "∑" on macOS. `⌘,`/`Ctrl+,` opens settings. I avoided `Alt+D`, which focuses the address bar on Windows. Plain-key shortcuts are ignored while typing in fields.
+
+### D10. A status bar holds the disclaimer and clock
+
+The bottom 24px bar shows the Binance / may be delayed / not financial advice disclaimer and a live clock in the chosen time zone, with its UTC offset. Pro terminals put this kind of persistent, low-priority information there, and it keeps the top bar for actions.
+
+### D11. Lint enforces "no hex colors in components"
+
+An ESLint `no-restricted-syntax` rule rejects hex literals in `src/**` outside `src/ui/tokens/`. The viewport `themeColor` reads from the token object.
+
+### D12. Toolchain pins
+
+- **TypeScript 5.9**, not 7.0: `create-next-app` for Next 16.4 scaffolds 5.x, and the native TS 7 compiler isn't yet the Next default.
+- **jsdom 28**: jsdom 31 requires Node ≥ 22.22, and this machine has 22.14. `engines.node` is set to `>=22.12`. Once Node is upgraded, jsdom can be bumped.
+- **ESLint 9**: `eslint-config-next` 16.4 targets the v9 flat config.

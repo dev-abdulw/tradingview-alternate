@@ -1,0 +1,225 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Theme variants follow the nearest data-theme ancestor (supports scoped previews). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+@custom-variant compact (&:where([data-density="compact"], [data-density="compact"] *));
+
+/*
+ * Token → utility mapping. Components use these utilities only
+ * (bg-panel, text-fg-muted, border-line, …) — never raw hex values.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-app: var(--bg-app);
+  --color-panel: var(--bg-panel);
+  --color-elevated: var(--bg-elevated);
+  --color-hover: var(--bg-hover);
+  --color-active: var(--bg-active);
+  --color-input: var(--bg-input);
+
+  --color-line: var(--border-subtle);
+  --color-line-strong: var(--border-strong);
+
+  --color-fg: var(--text-primary);
+  --color-fg-muted: var(--text-secondary);
+  --color-fg-subtle: var(--text-tertiary);
+  --color-fg-disabled: var(--text-disabled);
+
+  --color-accent: var(--accent);
+  --color-accent-solid: var(--accent-solid);
+  --color-accent-solid-hover: var(--accent-solid-hover);
+  --color-on-accent: var(--on-accent);
+  --color-accent-muted: var(--accent-muted);
+
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-up-muted: var(--up-muted);
+  --color-down-muted: var(--down-muted);
+
+  --color-warning: var(--warning);
+  --color-warning-solid: var(--warning-solid);
+  --color-warning-muted: var(--warning-muted);
+  --color-on-warning: var(--on-warning);
+  --color-danger: var(--danger);
+  --color-danger-muted: var(--danger-muted);
+
+  --color-chip-crypto: var(--chip-crypto);
+  --color-chip-crypto-bg: var(--chip-crypto-bg);
+  --color-chip-metal: var(--chip-metal);
+  --color-chip-metal-bg: var(--chip-metal-bg);
+  --color-chip-stock: var(--chip-stock);
+  --color-chip-stock-bg: var(--chip-stock-bg);
+
+  --color-scrim: var(--scrim);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Type scale: dense UI. */
+  --text-meta: 11px;
+  --text-meta--line-height: 16px;
+  --text-meta--letter-spacing: 0.04em;
+  --text-cell: 12px;
+  --text-cell--line-height: 16px;
+  --text-ui: 13px;
+  --text-ui--line-height: 20px;
+  --text-title: 15px;
+  --text-title--line-height: 22px;
+  --text-heading: 18px;
+  --text-heading--line-height: 26px;
+  --text-price: 22px;
+  --text-price--line-height: 28px;
+
+  --radius-control: var(--control-radius);
+  --radius-popover: var(--popover-radius);
+  --radius-dialog: var(--dialog-radius);
+
+  --shadow-popover: 0 0 0 1px var(--border-subtle), 0 12px 32px -12px var(--shadow-color);
+  --shadow-dialog: 0 0 0 1px var(--border-subtle), 0 24px 64px -16px var(--shadow-color);
+
+  --ease-out: var(--motion-ease);
+
+  --animate-flash-up: flash-up var(--motion-flash) var(--motion-ease);
+  --animate-flash-down: flash-down var(--motion-flash) var(--motion-ease);
+  --animate-fade-in: fade-in var(--motion-base) var(--motion-ease);
+  --animate-pop-in: pop-in var(--motion-base) var(--motion-ease);
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes flash-up {
+  from {
+    background-color: var(--up-muted);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes flash-down {
+  from {
+    background-color: var(--down-muted);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(-2px);
+  }
+}
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body,
+  [data-theme] {
+    background-color: var(--bg-app);
+    color: var(--text-primary);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-ui);
+    line-height: var(--text-ui--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+  }
+
+  ::selection {
+    background-color: var(--accent-muted);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* Quiet, theme-aware scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  /* Numbers are sacred: tabular figures, no horizontal jitter. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.005em;
+  }
+  .meta-label {
+    font-size: var(--text-meta);
+    line-height: var(--text-meta--line-height);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--text-tertiary);
+  }
+}
+
+/* Resizable panel separators: 1px hairline, accent on hover/drag. */
+[data-separator] {
+  position: relative;
+  flex: 0 0 1px;
+  background-color: var(--border-subtle);
+  outline: none;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+[data-separator]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+[aria-orientation="vertical"][data-separator]::after {
+  inset: 0 -1px;
+}
+[aria-orientation="horizontal"][data-separator]::after {
+  inset: -1px 0;
+}
+[data-separator="hover"]::after,
+[data-separator="focus"]::after,
+[data-separator="active"]::after {
+  background-color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
