@@ -2,7 +2,7 @@
 
 A multi-asset charting and watchlist app for crypto, gold, silver and tokenized US stocks, using Binance public market data.
 
-> Status: **Phase 2 (market data layer)** complete. See `docs/decisions.md` and `docs/market-data.md`. Live debug page at `/debug`.
+> Status: **Phase 3 (watchlists and search)** complete. See `docs/decisions.md` and `docs/market-data.md`. Live debug page at `/debug`.
 
 ## Quick start
 
@@ -55,3 +55,11 @@ Edit colors only in `src/ui/tokens/tokens.ts`, then run `pnpm tokens && pnpm con
 3. Register it with `registerProvider("<provider>:<market>", () => new MyProvider())` in `src/lib/market-data/registry.ts`.
 
 Symbols are addressed everywhere as `provider:market:symbol`, so the UI picks the new provider up without changes.
+
+## Keyboard
+
+| Where                      | Keys                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| Anywhere                   | `⌘K` / `Ctrl+K` or `/` search · `⌥W` toggle watchlist · `⌥I` toggle details · `⌘,` settings   |
+| Watchlist (focus the list) | `↑` `↓` `Home` `End` select and chart · `⌥↑` `⌥↓` reorder · `⌫` remove (with undo)            |
+| Search                     | `↑` `↓` move · `↵` open chart (or add, from the list's +) · `⇧↵` add to list · `Tab` category |

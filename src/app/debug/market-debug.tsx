@@ -5,7 +5,7 @@ import Link from "next/link";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import { browser } from "react-dom";
 import { ConnectionIndicator } from "@/features/shell/connection-indicator";
-import { useTickFlash } from "@/features/symbol/symbol-header";
+import { useTickFlash } from "@/lib/hooks/use-tick-flash";
 import type { BinanceProvider } from "@/lib/market-data/binance/provider";
 import { useInstrument, useInstruments, useMarkPrice, useTicker } from "@/lib/market-data/hooks";
 import {
@@ -78,11 +78,11 @@ function TickCard({ symbolKey }: { symbolKey: SymbolKey }) {
         <>
           <div className="flex items-baseline justify-between gap-2">
             <span
-              key={`${flash}-${t.eventTime}`}
+              key={flash.seq}
               className={cn(
                 "num -mx-1 rounded-[3px] px-1 text-price font-semibold",
-                flash === "up" && "animate-flash-up",
-                flash === "down" && "animate-flash-down",
+                flash.dir === "up" && "animate-flash-up",
+                flash.dir === "down" && "animate-flash-down",
               )}
             >
               {formatPrice(t.last, d)}

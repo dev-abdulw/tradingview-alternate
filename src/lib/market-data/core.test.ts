@@ -9,6 +9,8 @@ import {
   formatPrice,
   formatVolume,
 } from "./precision";
+import { rankInstruments } from "./search";
+import type { Instrument } from "./types";
 import { isSymbolKey, parseSymbolKey, toSymbolKey } from "./symbol-key";
 
 describe("precision", () => {
@@ -129,4 +131,59 @@ describe("LiveFeed", () => {
     expect(close).toHaveBeenCalledTimes(1);
     expect(feed.refCount("a")).toBe(0);
   });
+});
+
+describe("rankInstruments", () => {
+  const inst = (
+    symbol: string,
+    base: string,
+    quote: string,
+    assetClass: "crypto" | "metal" | "stock" = "crypto",
+    description?: string,
+  ) =>
+    ({
+      provider: "binance",
+      market: "spot",
+      symbol,
+      key: `binance:spot:${symbol}`,
+      base,
+      quote,
+      assetClass,
+      displayName: assetClass === "stock" ? base.slice(0, -1) : base,
+      ...(description ? { description } : {}),
+      tickSize: "0.01",
+      stepSize: "0.01",
+      priceDecimals: 2,
+      qtyDecimals: 2,
+    }) as Instrument;
+  const all = [
+    inst("BTCU", "BTC", "U"),
+    inst("BTCUSD", "BTC", "USD"),
+    inst("BTCUSDT", "BTC", "USDT"),
+    inst("BTCUSDC", "BTC", "USDC"),
+    inst("ETHUSDT", "ETH", "USDT"),
+    inst("ETHFIUSDT", "ETHFI", "USDT"),
+    inst("AAPLBUSDT", "AAPLB", "USDT", "stock"),
+    inst("PAXGUSDT", "PAXG", "USDT", "metal", "Gold (Pax Gold)"),
+  ];
+  const top = (q: string, popularity?: Map<string, number>) =>
+    rankInstruments(all, q, { popularity })[0]?.symbol;
+  it("keeps exact symbol matches first, then prefers the USDT pair on prefix ties", () => {
+    expect(top("btcu")).toBe("BTCU");
+    expect(top("btcus")).toBe("BTCUSDT");
+  });
+  it("ignores separators", () => expect(top("btc/usdt")).toBe("BTCUSDT"));
+  it("matches stocks by ticker and metals by name", () => {
+    expect(top("aapl")).toBe("AAPLBUSDT");
+    expect(top("gold")).toBe("PAXGUSDT");
+  });
+  it("breaks ties by 24h volume", () => {
+    const pop = new Map([
+      ["binance:spot:ETHFIUSDT", 1],
+      ["binance:spot:ETHUSDT", 9],
+    ]);
+    expect(top("et", pop)).toBe("ETHUSDT");
+  });
+  it("fuzzy-matches subsequences", () =>
+    expect(rankInstruments(all, "pxg").map((i) => i.symbol)).toContain("PAXGUSDT"));
 });

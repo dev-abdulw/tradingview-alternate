@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useChart } from "@/features/chart/chart-store";
 import { useSettings } from "@/features/settings/settings-store";
 import { SHORTCUTS } from "@/features/shell/shell-context";
 import { useUi } from "@/features/shell/ui-store";
 import { formatHotkey } from "@/lib/hooks/use-hotkeys";
+import { useTickFlash } from "@/lib/hooks/use-tick-flash";
 import { useInstrument, useMarkPrice, useTicker } from "@/lib/market-data/hooks";
 import { formatChange, formatFundingRate, formatPercent, formatPrice } from "@/lib/market-data/precision";
 import { parseSymbolKey } from "@/lib/market-data/symbol-key";
@@ -57,10 +58,10 @@ export function SymbolHeader() {
           <span
             className={cn(
               "num -mx-1 rounded-[3px] px-1 text-title font-semibold",
-              flash === "up" && "animate-flash-up",
-              flash === "down" && "animate-flash-down",
+              flash.dir === "up" && "animate-flash-up",
+              flash.dir === "down" && "animate-flash-down",
             )}
-            key={flash === null ? "idle" : `${flash}-${ticker.eventTime}`}
+            key={flash.seq}
           >
             {formatPrice(ticker.last, decimals, locale)}
           </span>
@@ -103,20 +104,6 @@ export function SymbolHeader() {
       )}
     </div>
   );
-}
-
-/** "up"/"down" for one flash per price change; null until the second tick. */
-export function useTickFlash(price: number | undefined): "up" | "down" | null {
-  const prev = useRef<number | undefined>(undefined);
-  const [dir, setDir] = useState<"up" | "down" | null>(null);
-  useEffect(() => {
-    if (price === undefined) return;
-    const before = prev.current;
-    prev.current = price;
-    if (before === undefined || before === price) return;
-    setDir(price > before ? "up" : "down");
-  }, [price]);
-  return dir;
 }
 
 function useDocumentTitle(title: string | null) {

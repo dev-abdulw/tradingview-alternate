@@ -51,6 +51,12 @@ export type ColorTokens = {
   "chip-metal-bg": string;
   "chip-stock": string;
   "chip-stock-bg": string;
+  /* Watchlist flags (non-text marks) */
+  "flag-red": string;
+  "flag-orange": string;
+  "flag-green": string;
+  "flag-blue": string;
+  "flag-violet": string;
   /* Chart */
   "chart-grid": string;
   "chart-crosshair": string;
@@ -103,6 +109,12 @@ export const themes: Record<ThemeName, ColorTokens> = {
     "chip-stock": "#B9A4F2",
     "chip-stock-bg": "rgba(150, 120, 230, 0.13)",
 
+    "flag-red": "#F25C6E",
+    "flag-orange": "#F08C3A",
+    "flag-green": "#3FBF7F",
+    "flag-blue": "#4C8DF6",
+    "flag-violet": "#A77BF3",
+
     "chart-grid": "rgba(255, 255, 255, 0.045)",
     "chart-crosshair": "rgba(154, 163, 178, 0.55)",
 
@@ -149,6 +161,12 @@ export const themes: Record<ThemeName, ColorTokens> = {
     "chip-metal-bg": "rgba(212, 167, 44, 0.14)",
     "chip-stock": "#6440C9",
     "chip-stock-bg": "rgba(120, 80, 220, 0.08)",
+
+    "flag-red": "#D62F48",
+    "flag-orange": "#D9690F",
+    "flag-green": "#178A51",
+    "flag-blue": "#2766D9",
+    "flag-violet": "#7C4FD6",
 
     "chart-grid": "rgba(15, 20, 25, 0.05)",
     "chart-crosshair": "rgba(74, 83, 99, 0.5)",
@@ -212,6 +230,14 @@ export const contrastRules: ContrastRule[] = [
   { fg: "chip-crypto", bg: ["chip-crypto-bg"], min: 4.5, note: "asset chip" },
   { fg: "chip-metal", bg: ["chip-metal-bg"], min: 4.5, note: "asset chip" },
   { fg: "chip-stock", bg: ["chip-stock-bg"], min: 4.5, note: "asset chip" },
+  ...(["flag-red", "flag-orange", "flag-green", "flag-blue", "flag-violet"] as const).map(
+    (fg): ContrastRule => ({
+      fg,
+      bg: ["bg-panel", "bg-hover", "bg-active"],
+      min: 3,
+      note: "flag mark (non-text)",
+    }),
+  ),
 ];
 
 /**

@@ -46,6 +46,11 @@
   --chip-metal-bg: rgba(212, 167, 44, 0.12);
   --chip-stock: #B9A4F2;
   --chip-stock-bg: rgba(150, 120, 230, 0.13);
+  --flag-red: #F25C6E;
+  --flag-orange: #F08C3A;
+  --flag-green: #3FBF7F;
+  --flag-blue: #4C8DF6;
+  --flag-violet: #A77BF3;
   --chart-grid: rgba(255, 255, 255, 0.045);
   --chart-crosshair: rgba(154, 163, 178, 0.55);
   --scrim: rgba(3, 5, 9, 0.62);
@@ -90,6 +95,11 @@
   --chip-metal-bg: rgba(212, 167, 44, 0.14);
   --chip-stock: #6440C9;
   --chip-stock-bg: rgba(120, 80, 220, 0.08);
+  --flag-red: #D62F48;
+  --flag-orange: #D9690F;
+  --flag-green: #178A51;
+  --flag-blue: #2766D9;
+  --flag-violet: #7C4FD6;
   --chart-grid: rgba(15, 20, 25, 0.05);
   --chart-crosshair: rgba(74, 83, 99, 0.5);
   --scrim: rgba(15, 20, 25, 0.32);

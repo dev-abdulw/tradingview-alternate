@@ -26,6 +26,7 @@ import {
   futuresExchangeInfo,
   klines as klinesSchema,
   premiumIndex,
+  restMiniTickers,
   restTicker,
   restTickers,
   spotExchangeInfo,
@@ -285,6 +286,36 @@ export class BinanceProvider implements MarketDataProvider {
       quoteVolume: d.quoteVolume,
       eventTime: d.closeTime,
     }));
+  }
+
+  async getAllTickers(opts: { signal?: AbortSignal } = {}): Promise<Ticker[]> {
+    // Spot: type=MINI for all symbols costs 80; futures all-symbols costs 40.
+    const spot = this.market === "spot";
+    const rows = await getJson(
+      this.url(spot ? "/api/v3/ticker/24hr?type=MINI" : "/fapi/v1/ticker/24hr"),
+      restMiniTickers,
+      {
+        weight: spot ? 80 : 40,
+        limiter: this.limiter,
+        fetchImpl: this.fetchImpl,
+        ...(opts.signal ? { signal: opts.signal } : {}),
+      },
+    );
+    return rows.map((d) => {
+      const change = d.lastPrice - d.openPrice;
+      return {
+        key: toSymbolKey({ provider: "binance", market: this.market, symbol: d.symbol }),
+        last: d.lastPrice,
+        open: d.openPrice,
+        high: d.highPrice,
+        low: d.lowPrice,
+        change,
+        changePct: d.openPrice ? (change / d.openPrice) * 100 : 0,
+        volume: d.volume,
+        quoteVolume: d.quoteVolume,
+        eventTime: d.closeTime,
+      };
+    });
   }
 
   subscribeTicker(symbol: string, onTicker: (t: Ticker) => void, opts: SubscribeOptions = {}): Unsubscribe {

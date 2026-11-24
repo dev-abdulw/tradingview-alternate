@@ -1,10 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { markPriceFeed, tickerFeed } from "./live/feeds";
 import type { LiveFeed } from "./live/live-store";
-import { activeProviders, getProvider, onProviderCreated } from "./registry";
+import { activeProviders, ENABLED_MARKETS, getProvider, onProviderCreated } from "./registry";
 import { marketId, parseSymbolKey } from "./symbol-key";
 import type { ConnectionStatus, Instrument, MarkPrice, SymbolKey, Ticker } from "./types";
 
@@ -106,4 +106,57 @@ export function useVisibilityPause(): void {
       offCreated();
     };
   }, []);
+}
+
+const instrumentQueries = ENABLED_MARKETS.map((id) => ({
+  queryKey: ["instruments", id],
+  queryFn: ({ signal }: { signal: AbortSignal }) => getProvider(id).getExchangeInfo({ signal }),
+  staleTime: 6 * 60 * 60 * 1000,
+  gcTime: Infinity,
+}));
+
+// Module-level combiners: TanStack memoizes the combined value while inputs are unchanged.
+const toInstrumentMap = (results: { data?: Instrument[] }[]): ReadonlyMap<string, Instrument> =>
+  new Map(results.flatMap((r) => r.data ?? []).map((i) => [i.key, i]));
+const toReady = (results: { isSuccess: boolean; error: Error | null }[]) => ({
+  ready: results.every((r) => r.isSuccess),
+  error: results.find((r) => r.error)?.error ?? null,
+});
+const toTickerMap = (results: { data?: Ticker[] }[]): ReadonlyMap<string, Ticker> =>
+  new Map(results.flatMap((r) => r.data ?? []).map((t) => [t.key, t]));
+
+/** key → Instrument across all enabled markets (stable reference between renders). */
+export function useInstrumentMap(): ReadonlyMap<string, Instrument> {
+  return useQueries({ queries: instrumentQueries, combine: toInstrumentMap });
+}
+
+export function useInstrumentsReady(): { ready: boolean; error: Error | null } {
+  return useQueries({ queries: instrumentQueries, combine: toReady });
+}
+
+/** Whole-market 24h snapshot (not live) for ranking and previews. Cached 60s. */
+export function useMarketSnapshot(enabled = true): ReadonlyMap<string, Ticker> {
+  return useQueries({
+    queries: ENABLED_MARKETS.map((id) => ({
+      queryKey: ["market-snapshot", id],
+      queryFn: async ({ signal }: { signal: AbortSignal }) =>
+        (await getProvider(id).getAllTickers?.({ signal })) ?? [],
+      staleTime: 60_000,
+      enabled,
+    })),
+    combine: toTickerMap,
+  });
+}
+
+/**
+ * Keeps live tickers flowing for a whole set of symbols (e.g. every symbol in
+ * a watchlist), independent of which rows are mounted. Virtualized rows then
+ * only read the store — scrolling never subscribes, unsubscribes or refetches.
+ */
+export function useRetainTickers(keys: readonly SymbolKey[]): void {
+  const signature = keys.join("|");
+  useEffect(() => {
+    const releases = signature ? signature.split("|").map((k) => tickerFeed.retain(k)) : [];
+    return () => releases.forEach((r) => r());
+  }, [signature]);
 }

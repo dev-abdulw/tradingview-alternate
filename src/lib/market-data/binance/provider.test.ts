@@ -68,9 +68,8 @@ describe("bStock classification (real exchangeInfo sample, 2026-11-24)", () => {
     (s) => expect(cls(s).assetClass).toBe("crypto"),
   );
 
-  it.each(["EURUSDT", "USDTTRY", "USDCUSDT"])(
-    "%s shares the low-volatility band but is not a stock",
-    (s) => expect(cls(s).assetClass).toBe("crypto"),
+  it.each(["EURUSDT", "USDTTRY", "USDCUSDT"])("%s shares the low-volatility band but is not a stock", (s) =>
+    expect(cls(s).assetClass).toBe("crypto"),
   );
 
   it.each([

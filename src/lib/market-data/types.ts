@@ -110,6 +110,8 @@ export interface MarketDataProvider {
   getKlines(symbol: string, timeframe: Timeframe, query?: KlineQuery): Promise<Kline[]>;
   /** REST 24h snapshot for many symbols (seeds prices before the first stream push). */
   getTickers(symbols: string[], opts?: { signal?: AbortSignal }): Promise<Ticker[]>;
+  /** Whole-market 24h snapshot in one request (search ranking, market overview). */
+  getAllTickers?(opts?: { signal?: AbortSignal }): Promise<Ticker[]>;
   subscribeTicker(symbol: string, onTicker: (t: Ticker) => void, opts?: SubscribeOptions): Unsubscribe;
   subscribeKlines(
     symbol: string,

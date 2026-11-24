@@ -110,3 +110,51 @@ The user trades spot only, which supersedes the brief's XAUUSDT/XAGUSDT futures 
 - **Stock perpetuals** are excluded; stocks come from spot bStocks only.
 - **Debug page:** the Phase 2 acceptance moved from XAU/XAG futures to PAXG/XAUT spot.
 - **Cache:** the instrument cache version is bumped whenever classification changes, so cached lists are rebuilt.
+
+## Phase 3: Watchlists and search
+
+### D21. Watchlists persist as row-level mutations
+
+Every edit becomes `upsertList | deleteList | upsertItem | deleteItem`. A pure reducer (`applyMutations`) applies them optimistically in the store and durably in `LocalWatchlistRepository` (one JSON document in the KeyValueStore). Phase 5's `SupabaseRepository` maps the same mutations onto single-row upserts and deletes, and the UI doesn't change. A failed save rolls back and shows a toast. Stored data is validated row by row, so one corrupt row is dropped rather than losing the whole list.
+
+### D22. Fractional positions
+
+`position` holds a fractional-indexing key, so a reorder writes exactly one row. Keys are compared by code unit, never `localeCompare`. **Phase 5: declare these columns `COLLATE "C"` in Postgres.**
+
+### D23. Flags mark a symbol, not a row
+
+Flagging BTC flags it in every list, and adding BTC to another list later inherits the flag. That matches "mark symbols across lists" in the brief. The flag is still stored on each `watchlist_items` row (the schema's `flag_color`), so no new table is needed.
+
+### D24. Sorting is a view, scoped to sections, refreshed slowly
+
+Clicking a header cycles the sort (numbers: high→low → low→high → off). Symbols sort within their section and sections stay put. Live-value sorts re-sort every 10s rather than on every tick, because rows jumping while you read them is worse than a slightly stale order. Drag is disabled while sorted; the stored order is untouched.
+
+### D25. A list owns its subscriptions; rows only read
+
+The list retains live tickers for all of its symbols (≤1024 per socket). Virtualized rows only read the frame-batched store. The first version subscribed per mounted row, and scrolling then caused 56 REST snapshot requests and subscribe churn. With the list owning them, scrolling costs nothing on the network and is a steady 60 fps.
+
+### D26. Default columns: Last, Chg%, Vol (Chg optional)
+
+Percentage change compares across assets and absolute change doesn't. Widths are fixed (84/68/62/56px) and numbers use tabular figures, so the grid never moves; a test measured 0 cell-box movements across 21 price changes.
+
+### D27. Monogram icons, no logo CDN
+
+Rows show a letter mark tinted by asset class (crypto, metal, stock). This means no third-party requests or tracking and no broken images for new listings, and color still only encodes meaning.
+
+### D28. Keyboard model
+
+- **Watchlist grid:** one tab stop, using `aria-activedescendant`. ↑/↓/Home/End select a row and switch the chart. ⌥↑/⌥↓ reorder. ⌫/Delete removes with undo. Row quick actions are deliberately out of the tab order (200 rows × 3 buttons would be 600 tab stops); they're mouse affordances with keyboard equivalents.
+- **Command palette:** ARIA combobox and listbox. ↵ opens the chart; in add mode (the panel's "+") ↵ adds. ⇧↵ always adds to the "Add to" list. Tab/⇧Tab cycles categories.
+- **Empty query:** recents first, then "Most active" by 24h volume. Stablecoin and fiat bases are excluded from that group but stay searchable.
+
+### D29. Search ranking
+
+Exact match, then name prefix, then symbol prefix, then description word, then substring, then fuzzy subsequence. Ties break by preferred quote (USDT first), then 24h volume (one `type=MINI` market snapshot, weight 80, cached 60s), then symbol. Separators are ignored, so "btc/usdt" finds BTCUSDT.
+
+### D30. There is always at least one list
+
+Deleting the last list is disabled. Every delete (list, item or section) shows an Undo toast.
+
+### D31. The details panel was filled in early
+
+The live ticker already carries 24h high/low/open and volumes, so the details panel and its range bar shipped in Phase 3. Phase 4 doesn't need to revisit it.

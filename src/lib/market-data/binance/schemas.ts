@@ -130,3 +130,17 @@ export const restTicker = z.looseObject({
   closeTime: z.number(),
 });
 export const restTickers = z.array(restTicker);
+
+/** `type=MINI` 24h ticker (no change fields — computed from open/last). */
+export const restMiniTickers = z.array(
+  z.looseObject({
+    symbol: z.string(),
+    openPrice: num,
+    highPrice: num,
+    lowPrice: num,
+    lastPrice: num,
+    volume: num,
+    quoteVolume: num,
+    closeTime: z.number(),
+  }),
+);
