@@ -10,6 +10,7 @@ import { SettingsForm } from "@/features/settings/settings-dialog";
 import { useSettings } from "@/features/settings/settings-store";
 import { WatchlistPanel } from "@/features/watchlist/watchlist-panel";
 import { useConnectionStatus, useInstrument, useTicker } from "@/lib/market-data/hooks";
+import { changeFor } from "@/lib/market-data/change";
 import { formatPercent, formatPrice } from "@/lib/market-data/precision";
 import { parseSymbolKey } from "@/lib/market-data/symbol-key";
 import { cn } from "@/lib/utils/cn";
@@ -95,6 +96,8 @@ function MobileSymbol() {
   const instrument = useInstrument(key);
   const t = useTicker(key);
   const locale = useSettings((s) => s.numberFormat);
+  const basis = useSettings((s) => s.changeBasis);
+  const ch = t ? changeFor(t, basis) : null;
   return (
     <button
       type="button"
@@ -108,8 +111,8 @@ function MobileSymbol() {
       {t && instrument ? (
         <span className="num text-cell leading-tight">
           <span className="text-fg">{formatPrice(t.last, instrument.priceDecimals, locale)}</span>{" "}
-          <span className={t.changePct >= 0 ? "text-up" : "text-down"}>
-            {formatPercent(t.changePct, locale)}
+          <span className={(ch?.changePct ?? 0) >= 0 ? "text-up" : "text-down"}>
+            {ch ? formatPercent(ch.changePct, locale) : ""}
           </span>
         </span>
       ) : (

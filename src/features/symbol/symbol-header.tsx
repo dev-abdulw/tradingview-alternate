@@ -6,6 +6,7 @@ import { useSettings } from "@/features/settings/settings-store";
 import { SHORTCUTS } from "@/features/shell/shell-context";
 import { useUi } from "@/features/shell/ui-store";
 import { formatHotkey } from "@/lib/hooks/use-hotkeys";
+import { changeFor } from "@/lib/market-data/change";
 import { useTickFlash } from "@/lib/hooks/use-tick-flash";
 import { useInstrument, useMarkPrice, useTicker } from "@/lib/market-data/hooks";
 import { formatChange, formatFundingRate, formatPercent, formatPrice } from "@/lib/market-data/precision";
@@ -23,16 +24,18 @@ export function SymbolHeader() {
   const ticker = useTicker(key);
   const mark = useMarkPrice(key);
   const locale = useSettings((s) => s.numberFormat);
+  const basis = useSettings((s) => s.changeBasis);
+  const ch = ticker ? changeFor(ticker, basis) : null;
   const decimals = instrument?.priceDecimals;
 
   const flash = useTickFlash(ticker?.last);
   useDocumentTitle(
-    ticker && decimals !== undefined
-      ? `${symbol} ${formatPrice(ticker.last, decimals, locale)} ${ticker.changePct >= 0 ? "▲" : "▼"}${Math.abs(ticker.changePct).toFixed(2)}%`
+    ticker && ch && decimals !== undefined
+      ? `${symbol} ${formatPrice(ticker.last, decimals, locale)} ${ch.changePct >= 0 ? "▲" : "▼"}${Math.abs(ch.changePct).toFixed(2)}%`
       : null,
   );
 
-  const dir = ticker ? (ticker.change > 0 ? "up" : ticker.change < 0 ? "down" : "flat") : "flat";
+  const dir = ch ? (ch.change > 0 ? "up" : ch.change < 0 ? "down" : "flat") : "flat";
 
   return (
     <div className="flex min-w-0 items-center gap-3">
@@ -73,10 +76,14 @@ export function SymbolHeader() {
               dir === "flat" && "text-fg-muted",
             )}
           >
-            {formatChange(ticker.change, decimals, locale)} ({formatPercent(ticker.changePct, locale)})
+            {ch
+              ? `${formatChange(ch.change, decimals, locale)} (${formatPercent(ch.changePct, locale)})`
+              : "—"}
           </span>
           <span className="sr-only">
-            {`24 hour change ${dir === "down" ? "down" : "up"} ${Math.abs(ticker.changePct).toFixed(2)} percent`}
+            {ch
+              ? `${basis === "daily" ? "Change since daily open" : "24 hour change"} ${dir === "down" ? "down" : "up"} ${Math.abs(ch.changePct).toFixed(2)} percent`
+              : ""}
           </span>
         </div>
       ) : (

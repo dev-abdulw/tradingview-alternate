@@ -205,6 +205,22 @@ describe("BinanceSpotProvider", () => {
     expect(await p.getTickers([])).toEqual([]);
   });
 
+  it("fetches daily opens with the trading-day ticker in batches of 100", async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      expect(url.pathname).toBe("/api/v3/ticker/tradingDay");
+      expect(url.searchParams.get("type")).toBe("MINI");
+      const symbols = JSON.parse(url.searchParams.get("symbols")!) as string[];
+      return jsonResponse(symbols.map((symbol, i) => ({ symbol, openPrice: String(100 + i) })));
+    }) as unknown as typeof fetch;
+    const p = new BinanceSpotProvider({ fetchImpl });
+    const opens = await p.getDayOpens(Array.from({ length: 130 }, (_, i) => `S${i}USDT`));
+    expect(opens.size).toBe(130);
+    expect(opens.get("S0USDT")).toBe(100);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(p.limiter.used()).toBe(200 + 120); // capped at 200, then 30 × 4
+  });
+
   it("rejects malformed responses at the boundary", async () => {
     const p = new BinanceSpotProvider({ fetchImpl: fakeFetch({ "/api/v3/klines": [["bad"]] }) });
     await expect(p.getKlines("BTCUSDT", "1h")).rejects.toThrow(/Unexpected response shape/);

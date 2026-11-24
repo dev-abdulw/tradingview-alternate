@@ -145,3 +145,6 @@ export const restMiniTickers = z.array(
     closeTime: z.number(),
   }),
 );
+
+/** `/api/v3/ticker/tradingDay?type=MINI` — the open is the 00:00 UTC daily open. */
+export const tradingDayTickers = z.array(z.looseObject({ symbol: z.string(), openPrice: num }));

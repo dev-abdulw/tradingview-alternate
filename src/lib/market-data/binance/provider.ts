@@ -27,6 +27,7 @@ import {
   klines as klinesSchema,
   premiumIndex,
   restMiniTickers,
+  tradingDayTickers,
   restTicker,
   restTickers,
   spotExchangeInfo,
@@ -287,6 +288,32 @@ export class BinanceProvider implements MarketDataProvider {
       quoteVolume: d.quoteVolume,
       eventTime: d.closeTime,
     }));
+  }
+
+  async getDayOpens(symbols: string[], opts: { signal?: AbortSignal } = {}): Promise<Map<string, number>> {
+    const out = new Map<string, number>();
+    if (symbols.length === 0) return out;
+    const signal = opts.signal ? { signal: opts.signal } : {};
+    if (this.market === "spot") {
+      // Trading-day ticker: weight 4 per symbol, capped at 200 per request (≤100 symbols).
+      for (const part of chunk(symbols, 100)) {
+        const rows = await getJson(
+          this.url(`/api/v3/ticker/tradingDay${query({ symbols: JSON.stringify(part), type: "MINI" })}`),
+          tradingDayTickers,
+          {
+            weight: Math.min(200, part.length * 4),
+            limiter: this.limiter,
+            fetchImpl: this.fetchImpl,
+            ...signal,
+          },
+        );
+        for (const r of rows) out.set(r.symbol, r.openPrice);
+      }
+      return out;
+    }
+    const bars = await Promise.all(symbols.map((s) => this.getKlines(s, "1D", { limit: 1, ...signal })));
+    bars.forEach((b, i) => b[0] && out.set(symbols[i]!, b[0].open));
+    return out;
   }
 
   async getAllTickers(opts: { signal?: AbortSignal } = {}): Promise<Ticker[]> {

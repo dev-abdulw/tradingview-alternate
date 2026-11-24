@@ -59,6 +59,8 @@ export type Ticker = {
   /** 24h volume in quote units (USDT etc.) — the number traders compare. */
   quoteVolume: number;
   eventTime: number;
+  /** Open of the current daily candle (00:00 UTC) — TradingView's "change" reference. */
+  dayOpen?: number;
 };
 
 export type MarkPrice = {
@@ -112,6 +114,8 @@ export interface MarketDataProvider {
   getKlines(symbol: string, timeframe: Timeframe, query?: KlineQuery): Promise<Kline[]>;
   /** REST 24h snapshot for many symbols (seeds prices before the first stream push). */
   getTickers(symbols: string[], opts?: { signal?: AbortSignal }): Promise<Ticker[]>;
+  /** Open price of the current daily candle (00:00 UTC) per symbol. */
+  getDayOpens?(symbols: string[], opts?: { signal?: AbortSignal }): Promise<Map<string, number>>;
   /** Whole-market 24h snapshot in one request (search ranking, market overview). */
   getAllTickers?(opts?: { signal?: AbortSignal }): Promise<Ticker[]>;
   subscribeTicker(symbol: string, onTicker: (t: Ticker) => void, opts?: SubscribeOptions): Unsubscribe;

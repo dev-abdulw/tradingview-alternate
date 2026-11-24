@@ -27,7 +27,9 @@ import {
 import { Skeleton } from "@/ui/skeleton";
 import { FlagDot, FlagMenuItems } from "./flags";
 import { SymbolIcon } from "./symbol-icon";
+import { useSettings } from "@/features/settings/settings-store";
 import { SignalCell } from "@/features/signals/signal-cell";
+import { changeFor } from "@/lib/market-data/change";
 import { COLUMNS, useWatchlistPrefs, type Column } from "./watchlist-prefs";
 
 /* --------------------------------- cells ---------------------------------- */
@@ -46,6 +48,8 @@ const LiveCells = memo(function LiveCells({
   const t = useTicker(symbolKey);
   const flash = useTickFlash(t?.last);
   const signalHorizon = useWatchlistPrefs((s) => s.signalHorizon);
+  const basis = useSettings((s) => s.changeBasis);
+  const ch = t ? changeFor(t, basis) : null;
 
   const cells: Record<Column, React.ReactNode> = {
     last: null,
@@ -54,11 +58,11 @@ const LiveCells = memo(function LiveCells({
     volume: null,
     signal: null,
   };
-  if (!t || decimals === undefined) {
+  if (!t || !ch || decimals === undefined) {
     for (const c of COLUMNS)
       cells[c] = <Skeleton className={cn("ml-auto h-2.5", c === "last" ? "w-14" : "w-9")} />;
   } else {
-    const dir = t.change > 0 ? "text-up" : t.change < 0 ? "text-down" : "text-fg-muted";
+    const dir = ch.change > 0 ? "text-up" : ch.change < 0 ? "text-down" : "text-fg-muted";
     cells.last = (
       <span
         key={flash.seq}
@@ -71,13 +75,13 @@ const LiveCells = memo(function LiveCells({
         {formatPrice(t.last, decimals, locale)}
       </span>
     );
-    cells.change = <span className={dir}>{formatChange(t.change, decimals, locale)}</span>;
+    cells.change = <span className={dir}>{formatChange(ch.change, decimals, locale)}</span>;
     cells.changePct = (
       <span
         className={cn(dir, "font-medium")}
-        aria-label={`${t.change >= 0 ? "up" : "down"} ${Math.abs(t.changePct).toFixed(2)} percent`}
+        aria-label={`${ch.change >= 0 ? "up" : "down"} ${Math.abs(ch.changePct).toFixed(2)} percent`}
       >
-        {formatPercent(t.changePct, locale)}
+        {formatPercent(ch.changePct, locale)}
       </span>
     );
     cells.volume = <span className="text-fg-muted">{formatVolume(t.quoteVolume, locale)}</span>;

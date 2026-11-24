@@ -89,10 +89,16 @@ function TickCard({ symbolKey }: { symbolKey: SymbolKey }) {
             </span>
             <span className={cn("num text-ui font-medium", t.change >= 0 ? "text-up" : "text-down")}>
               {formatPercent(t.changePct)}
+              {t.dayOpen !== undefined && (
+                <span className="ml-2 text-cell text-fg-subtle">
+                  day {formatPercent(((t.last - t.dayOpen) / t.dayOpen) * 100)}
+                </span>
+              )}
             </span>
           </div>
           <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-cell">
-            <Row k="24h change" v={formatChange(t.change, d)} />
+            <Row k="24h change (rolling)" v={formatChange(t.change, d)} />
+            <Row k="Daily open (00:00 UTC)" v={t.dayOpen !== undefined ? formatPrice(t.dayOpen, d) : "—"} />
             <Row k="Tick size" v={instrument?.tickSize.replace(/0+$/, "") ?? "—"} />
             <Row k="24h high" v={formatPrice(t.high, d)} />
             <Row k="24h low" v={formatPrice(t.low, d)} />

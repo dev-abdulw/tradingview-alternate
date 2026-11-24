@@ -25,6 +25,8 @@ export const settingsSchema = z.object({
   defaultTimeframe: z.enum(TIMEFRAMES),
   favoriteTimeframes: z.array(z.enum(TIMEFRAMES)),
   alertSound: z.boolean(),
+  /** "daily" = since 00:00 UTC open (TradingView); "rolling" = vs 24h ago (Binance). */
+  changeBasis: z.enum(["daily", "rolling"]),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
@@ -38,6 +40,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultTimeframe: "1h",
   favoriteTimeframes: ["5m", "15m", "1h", "4h", "1D"],
   alertSound: true,
+  changeBasis: "daily",
 };
 
 type SettingsActions = {

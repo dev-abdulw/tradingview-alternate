@@ -199,6 +199,7 @@ export function SettingsForm() {
             }))}
           />
         </Row>
+        <ChangeBasisRow />
         <Row label="Default timeframe" htmlFor="settings-tf">
           <Select<Timeframe>
             id="settings-tf"
@@ -290,5 +291,39 @@ function BackupSection() {
       </div>
       <p className="text-meta text-fg-subtle">Importing replaces the data in this browser.</p>
     </section>
+  );
+}
+
+function ChangeBasisRow() {
+  const basis = useSettings((s) => s.changeBasis);
+  const timezone = useSettings((s) => s.timezone);
+  const update = useSettings((s) => s.update);
+  const midnightUtc = new Date(Date.UTC(2026, 0, 1));
+  const local = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(midnightUtc);
+  const city = timezone.split("/").pop()?.replace("_", " ") ?? timezone;
+  return (
+    <Row
+      label="Change %"
+      hint={
+        basis === "daily"
+          ? `Since the daily open at 00:00 UTC (${local} in ${city}), like TradingView.`
+          : "Versus exactly 24 hours ago, like the Binance app."
+      }
+    >
+      <SegmentedControl<"daily" | "rolling">
+        aria-label="Change % basis"
+        value={basis}
+        onValueChange={(changeBasis) => update({ changeBasis })}
+        options={[
+          { value: "daily", label: "Since daily open" },
+          { value: "rolling", label: "Rolling 24h" },
+        ]}
+      />
+    </Row>
   );
 }

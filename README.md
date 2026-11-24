@@ -59,7 +59,7 @@ Requires **Node ≥ 22.12** and **pnpm 11**. No API keys: market data comes from
 - **Signals:** a per-symbol scorecard for Intraday (1h/4h) and Swing (1D/1W): trend, momentum, order flow, futures positioning (funding, open interest, long/short), relative strength and sentiment, each with a reason; a −100…+100 verdict; a backtest per symbol with its baseline; alerts when the verdict flips. A rule-based reading, not financial advice.
 - **Alerts:** above / below / crossing. Toast, browser notification and an optional sound. Works in a background tab.
 - **Phone and tablet:** bottom tab bar, swipe to remove or flag, long-press to drag, slide-over watchlist on tablets.
-- **Settings:** theme (dark / light / system), colorblind-safe up/down colors, density, time zone (default Asia/Karachi), number format, default timeframe and backup.
+- **Settings:** change % basis (since the daily open like TradingView, or rolling 24h like Binance), theme (dark / light / system), colorblind-safe up/down colors, density, time zone (default Asia/Karachi), number format, default timeframe and backup.
 
 ### Keyboard
 

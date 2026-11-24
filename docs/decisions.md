@@ -326,3 +326,12 @@ Top traders' long/short ratio sits structurally below the all-accounts ratio (re
 ### D55. Verdict-flip alerts
 
 Toggled per symbol and horizon from the card's bell, they're evaluated **once per closed candle** (30s after the close), using the same scorecard with hysteresis: enter at ±35, leave only after crossing back past ±25. They notify through the shared toast, notification and chime path, are listed under Alerts, and are stored behind the collection repository.
+
+### D56. Change % matches TradingView by default (user decision, 2026-11-24)
+
+TradingView measures change from the **daily candle open at 00:00 UTC** (05:00 in Karachi). Binance's 24h ticker measures against exactly 24 hours ago, so the two differ even when prices match. The default is now **"Since daily open"**, and **"Rolling 24h"** remains a setting (Settings → Data & formatting → Change %).
+
+- **Daily open source:** seeded in batches from `/api/v3/ticker/tradingDay?type=MINI` (weight 4 per symbol, capped at 200 per 100 symbols), then kept current by the 1D kline stream. That stream rolls it over automatically at the UTC day boundary, adding one extra stream per watched symbol (well under the 1,024 limit).
+- **No flicker:** in daily mode a cell shows its skeleton until the open is known, so it never flashes the rolling value first.
+- **Scope:** watchlist cells and sorting, the top bar, the tab title and the phone header follow the setting. The details panel stays explicitly "24h" (24h high/low/range), and the search palette's figures come from the whole-market rolling snapshot, so they carry a visible "24h" label.
+- **Verified live:** BTC, ETH, PAXG and AAPL matched an independent trading-day calculation to 0.01%.

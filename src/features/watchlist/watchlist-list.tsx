@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { useChart } from "@/features/chart/chart-store";
 import { useSettings } from "@/features/settings/settings-store";
 import { useCoarsePointer } from "@/lib/hooks/use-media";
+import { changeFor } from "@/lib/market-data/change";
 import { useRetainTickers } from "@/lib/market-data/hooks";
 import { tickerFeed } from "@/lib/market-data/live/feeds";
 import type { Instrument, SymbolKey } from "@/lib/market-data/types";
@@ -70,7 +71,8 @@ function comparator(sort: NonNullable<Sort>, instruments: ReadonlyMap<string, In
     if (sort.column === "signal") return undefined; // not sortable (header toggles the horizon)
     const t = tickerFeed.store.get(key);
     if (!t) return undefined;
-    return { last: t.last, change: t.change, changePct: t.changePct, volume: t.quoteVolume }[sort.column];
+    const ch = changeFor(t, useSettings.getState().changeBasis);
+    return { last: t.last, change: ch?.change, changePct: ch?.changePct, volume: t.quoteVolume }[sort.column];
   };
   return (a: WatchlistSymbolRow, b: WatchlistSymbolRow) => {
     const va = value(a);

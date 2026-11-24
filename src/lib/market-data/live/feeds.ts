@@ -16,6 +16,7 @@ class SnapshotSeeder {
 
   constructor(
     private readonly push: (t: Ticker) => void,
+    private readonly pushDayOpen: (key: string, open: number) => void,
     private readonly delayMs = 30,
   ) {}
 
@@ -36,28 +37,55 @@ class SnapshotSeeder {
     const batches = this.pending;
     this.pending = new Map();
     for (const [id, symbols] of batches) {
-      getProvider(id)
+      const provider = getProvider(id);
+      provider
         .getTickers([...symbols])
         .then((ts) => ts.forEach(this.push))
         .catch(() => {
           /* the stream will fill in; a failed snapshot isn't worth surfacing */
         });
+      provider
+        .getDayOpens?.([...symbols])
+        .then((opens) => opens.forEach((open, symbol) => this.pushDayOpen(`${id}:${symbol}`, open)))
+        .catch(() => {
+          /* the 1D kline stream fills it in */
+        });
     }
   }
+}
+
+/**
+ * Daily opens (00:00 UTC) per symbol — TradingView's change reference. Seeded by
+ * the snapshot, then kept current by the 1D kline stream, which also rolls it
+ * over automatically when a new day starts.
+ */
+const dayOpens = new Map<string, number>();
+
+function setDayOpen(key: string, open: number) {
+  if (dayOpens.get(key) === open) return;
+  dayOpens.set(key, open);
+  const current = tickerFeed.store.get(key);
+  if (current && tickerFeed.refCount(key) > 0) tickerFeed.store.set(key, { ...current, dayOpen: open });
 }
 
 export const tickerFeed: LiveFeed<Ticker> = new LiveFeed<Ticker>((key, push) => {
   const { provider, symbol } = providerForKey(key);
   seeder.request(key);
-  return provider.subscribeTicker(symbol, push);
+  const offTicker = provider.subscribeTicker(symbol, (t) => push({ ...t, dayOpen: dayOpens.get(key) }));
+  const offDay = provider.subscribeKlines(symbol, "1D", (k) => setDayOpen(key, k.open));
+  return () => {
+    offTicker();
+    offDay();
+  };
 });
 
 const seeder = new SnapshotSeeder((t) => {
   // Never let a (slower) snapshot overwrite a newer streamed value, and only seed watched keys.
   if (tickerFeed.refCount(t.key) === 0) return;
   const current = tickerFeed.store.get(t.key);
-  if (!current || current.eventTime < t.eventTime) tickerFeed.store.set(t.key, t);
-});
+  if (!current || current.eventTime < t.eventTime)
+    tickerFeed.store.set(t.key, { ...t, dayOpen: dayOpens.get(t.key) });
+}, setDayOpen);
 
 export const markPriceFeed: LiveFeed<MarkPrice> = new LiveFeed<MarkPrice>((key, push) => {
   const { provider, symbol } = providerForKey(key);

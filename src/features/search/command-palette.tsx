@@ -366,8 +366,9 @@ function ResultRow({
           {ticker ? (
             <>
               <div className="text-fg">{formatPrice(ticker.last, i.priceDecimals, locale)}</div>
-              <div className={ticker.changePct >= 0 ? "text-up" : "text-down"}>
+              <div className={ticker.changePct >= 0 ? "text-up" : "text-down"} title="Rolling 24-hour change">
                 {formatPercent(ticker.changePct, locale)}
+                <span className="ml-1 text-meta text-fg-subtle">24h</span>
               </div>
             </>
           ) : null}

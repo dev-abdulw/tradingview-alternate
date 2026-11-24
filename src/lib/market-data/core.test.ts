@@ -9,6 +9,7 @@ import {
   formatPrice,
   formatVolume,
 } from "./precision";
+import { changeFor } from "./change";
 import { rankInstruments } from "./search";
 import type { Instrument } from "./types";
 import { isSymbolKey, parseSymbolKey, toSymbolKey } from "./symbol-key";
@@ -188,4 +189,31 @@ describe("rankInstruments", () => {
   });
   it("fuzzy-matches subsequences", () =>
     expect(rankInstruments(all, "pxg").map((i) => i.symbol)).toContain("PAXGUSDT"));
+});
+
+describe("changeFor (TradingView vs Binance basis)", () => {
+  const t = {
+    key: "binance:spot:BTCUSDT" as const,
+    last: 59_849.38,
+    open: 61_378.1,
+    high: 1,
+    low: 1,
+    change: 59_849.38 - 61_378.1,
+    changePct: -2.4907,
+    volume: 1,
+    quoteVolume: 1,
+    eventTime: 1,
+    dayOpen: 61_270.92,
+  };
+  it("daily basis measures from the 00:00 UTC open, like TradingView", () => {
+    const c = changeFor(t, "daily")!;
+    expect(c.change).toBeCloseTo(-1421.54, 2);
+    expect(c.changePct).toBeCloseTo(-2.32, 2);
+  });
+  it("rolling basis is Binance's 24h ticker change", () => {
+    expect(changeFor(t, "rolling")).toEqual({ change: t.change, changePct: t.changePct });
+  });
+  it("returns null in daily mode until the open is known (no visible jump)", () => {
+    expect(changeFor({ ...t, dayOpen: undefined }, "daily")).toBeNull();
+  });
 });
