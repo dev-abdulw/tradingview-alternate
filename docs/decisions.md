@@ -99,3 +99,14 @@ A newly watched symbol triggers a batched `ticker/24hr` (spot: up to 100 symbols
 ### D19. Instruments cached for 6h, stale-on-error
 
 The compact `Instrument[]` (~200KB, not the raw MB) is persisted through the KeyValueStore. If a refresh fails, the cached list is served instead.
+
+### D20. Spot only: metals are PAXG + XAUT (user decision, 2026-11-24)
+
+The user trades spot only, which supersedes the brief's XAUUSDT/XAGUSDT futures metals (and D14).
+
+- **Metals** are tokenized gold on spot: PAXGUSDT and XAUTUSDT. Binance spot has **no silver**.
+- **Futures** stays in the code (`BinanceFuturesProvider`, tests, mark price and funding) for later market-prediction work. It is excluded from `ENABLED_MARKETS`, so no futures socket or request runs in the app.
+- **Energy commodities** are skipped for now.
+- **Stock perpetuals** are excluded; stocks come from spot bStocks only.
+- **Debug page:** the Phase 2 acceptance moved from XAU/XAG futures to PAXG/XAUT spot.
+- **Cache:** the instrument cache version is bumped whenever classification changes, so cached lists are rebuilt.

@@ -13,6 +13,12 @@ const factories = new Map<string, Factory>([
   ["binance:spot", () => new BinanceSpotProvider()],
   ["binance:futures", () => new BinanceFuturesProvider()],
 ]);
+/**
+ * Markets the UI searches and lists. The user trades spot only; the futures
+ * adapter stays registered (lazy, no socket unless used) for later analysis work.
+ */
+export const ENABLED_MARKETS = ["binance:spot"] as const;
+
 const instances = new Map<string, MarketDataProvider>();
 const createdListeners = new Set<(p: MarketDataProvider) => void>();
 

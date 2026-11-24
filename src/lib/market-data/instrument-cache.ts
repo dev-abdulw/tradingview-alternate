@@ -6,7 +6,8 @@
 import { getKeyValueStore, storageKey } from "@/lib/persistence/kv";
 import type { Instrument } from "./types";
 
-const VERSION = 1;
+/** Bump whenever classification or the Instrument shape changes, so cached lists are rebuilt. */
+const VERSION = 2;
 export const INSTRUMENT_TTL_MS = 6 * 60 * 60 * 1000;
 
 type Entry = { v: number; fetchedAt: number; items: Instrument[] };

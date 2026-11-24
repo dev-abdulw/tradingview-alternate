@@ -68,10 +68,18 @@ describe("bStock classification (real exchangeInfo sample, 2026-11-24)", () => {
     (s) => expect(cls(s).assetClass).toBe("crypto"),
   );
 
-  it.each(["PAXGUSDT", "XAUTUSDT", "EURUSDT", "USDTTRY", "USDCUSDT"])(
+  it.each(["EURUSDT", "USDTTRY", "USDCUSDT"])(
     "%s shares the low-volatility band but is not a stock",
     (s) => expect(cls(s).assetClass).toBe("crypto"),
   );
+
+  it.each([
+    ["PAXGUSDT", "PAXG"],
+    ["XAUTUSDT", "XAUT"],
+  ])("%s (tokenized gold, stock-like band) is a spot metal, not a stock", (s, name) => {
+    expect(cls(s)).toMatchObject({ assetClass: "metal", displayName: name });
+    expect(cls(s).description).toMatch(/^Gold/);
+  });
 
   it("separates same-ticker crypto and stock (STX crypto vs STXB Seagate)", () => {
     expect(cls("STXUSDT").assetClass).toBe("crypto");

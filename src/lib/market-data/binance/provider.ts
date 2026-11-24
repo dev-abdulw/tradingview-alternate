@@ -98,7 +98,7 @@ const SPOT: MarketConfig = {
       .map((s) => {
         const tickSize = filterValue(s.filters, "PRICE_FILTER", "tickSize");
         const stepSize = filterValue(s.filters, "LOT_SIZE", "stepSize");
-        const { assetClass, displayName } = classifySpot(s);
+        const { assetClass, displayName, description } = classifySpot(s);
         const ref = { provider: "binance", market: "spot", symbol: s.symbol };
         return {
           ...ref,
@@ -107,6 +107,7 @@ const SPOT: MarketConfig = {
           quote: s.quoteAsset,
           assetClass,
           displayName,
+          ...(description ? { description } : {}),
           tickSize,
           stepSize,
           priceDecimals: decimalsFromStep(tickSize),

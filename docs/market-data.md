@@ -22,7 +22,11 @@ Findings from probing the live APIs on **2026-11-24**. Re-check them if Binance 
 
 Everything on spot that isn't a bStock. That's 1,376 TRADING pairs, 526 of them quoted in USDT.
 
-### Metals: futures `TRADIFI_PERPETUAL`
+### Metals: spot tokenized gold (used by the app)
+
+PAXGUSDT and XAUTUSDT, about $17M 24h volume each. Binance spot has no silver. These two tokens share the stock-like price band, but their base assets don't end in `B`, so they are never misread as stocks. The user trades spot only (see decision D20).
+
+### Metals on futures (in code, not used by the app): `TRADIFI_PERPETUAL`
 
 `underlyingType: "COMMODITY"` covers 8 contracts:
 

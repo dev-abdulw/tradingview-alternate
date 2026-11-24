@@ -70,11 +70,23 @@ export function isBStock(s: Pick<SpotSymbol, "baseAsset" | "quoteAsset" | "filte
   );
 }
 
+/**
+ * Gold-backed tokens on spot (asset codes, like METAL_BASES). Binance spot has
+ * no silver. The user trades spot only, so these are the app's Metals.
+ */
+export const SPOT_METAL_BASES: Record<string, string> = {
+  PAXG: "Gold (Pax Gold)",
+  XAUT: "Gold (Tether Gold)",
+};
+
 export function classifySpot(s: Pick<SpotSymbol, "baseAsset" | "quoteAsset" | "filters">): {
   assetClass: AssetClass;
   displayName: string;
+  description?: string;
 } {
   if (isBStock(s)) return { assetClass: "stock", displayName: s.baseAsset.slice(0, -1) };
+  const metal = SPOT_METAL_BASES[s.baseAsset];
+  if (metal) return { assetClass: "metal", displayName: s.baseAsset, description: metal };
   return { assetClass: "crypto", displayName: s.baseAsset };
 }
 

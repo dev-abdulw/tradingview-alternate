@@ -15,7 +15,7 @@ import {
   formatPrice,
   formatVolume,
 } from "@/lib/market-data/precision";
-import { getProvider } from "@/lib/market-data/registry";
+import { ENABLED_MARKETS, getProvider } from "@/lib/market-data/registry";
 import { parseSymbolKey } from "@/lib/market-data/symbol-key";
 import type { Kline, SymbolKey } from "@/lib/market-data/types";
 import type { StreamStats } from "@/lib/market-data/ws/stream-manager";
@@ -24,7 +24,7 @@ import { Button } from "@/ui/button";
 import { AssetClassChip, Chip } from "@/ui/chip";
 import { Skeleton } from "@/ui/skeleton";
 
-const MARKETS = ["binance:spot", "binance:futures"] as const;
+const MARKETS = ENABLED_MARKETS;
 
 function useNow(ms = 500) {
   const [now, setNow] = useState(() => Date.now());
@@ -285,7 +285,7 @@ export function MarketDebug() {
     return (stocks.find((i) => i.displayName === "AAPL") ?? stocks[0])?.key ?? null;
   }, [spot]);
 
-  const cards: SymbolKey[] = ["binance:spot:BTCUSDT", "binance:futures:XAUUSDT", "binance:futures:XAGUSDT"];
+  const cards: SymbolKey[] = ["binance:spot:BTCUSDT", "binance:spot:PAXGUSDT", "binance:spot:XAUTUSDT"];
 
   return (
     <div className="h-dvh overflow-y-auto">
@@ -311,7 +311,7 @@ export function MarketDebug() {
           )}
         </div>
         <LiveCandle />
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3">
           {MARKETS.map((m) => (
             <SocketPanel key={m} id={m} />
           ))}
