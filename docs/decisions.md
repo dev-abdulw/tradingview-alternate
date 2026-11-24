@@ -158,3 +158,63 @@ Deleting the last list is disabled. Every delete (list, item or section) shows a
 ### D31. The details panel was filled in early
 
 The live ticker already carries 24h high/low/open and volumes, so the details panel and its range bar shipped in Phase 3. Phase 4 doesn't need to revisit it.
+
+## Phase 4: Chart
+
+### D32. Indicator definitions follow TradingView's Pine built-ins
+
+- EMA is SMA-seeded (`pine_ema`).
+- RSI uses Wilder RMA.
+- Bollinger Bands use population σ (`ta.stdev`).
+- VWAP is anchored to the UTC day (crypto has no exchange session).
+- MACD is 12/26/9.
+
+These values are what traders compare against. They're verified two ways:
+
+1. **An independent Python implementation** on 300 real BTCUSDT 1h candles (fixture in `src/lib/indicators/__fixtures__`), matched to 1e-8.
+2. **StockCharts' published RSI example.** Exact math sits within 0.07 of it; StockCharts rounds intermediate averages to 2 dp in its spreadsheet.
+
+### D33. Indicator math runs on the main thread, not in a Web Worker
+
+Every function is O(n) and allocation-light. A full recompute of six indicators over 3,000 bars on each tick takes well under 1ms, while a worker round-trip would add latency and serialization of every bar. Revisit if paging regularly goes past ~20k bars.
+
+### D34. Candle cache
+
+- **Storage and reuse:** an LRU of 24 (symbol, timeframe) entries. A cache hit renders synchronously and then revalidates if older than 15s. Measured on a production build: **symbol switches 34–63ms, timeframe switches 33–41ms from cache** (target under 300ms), and about 300ms on a first load over the network.
+- **Live klines:** a kline with the same open time replaces the last bar; a newer one appends exactly one bar. Verified live across a real 1m boundary: +1 bar, +60s.
+- **Gaps:** a jump larger than one interval (missed candles) triggers a refetch, and every socket reconnect revalidates.
+- **Paging:** older history loads 1,000 bars per page via `endTime`, keeping the viewport anchored. Paging is suppressed for 800ms after a fresh load, because the view reset briefly reports a left-edge range.
+
+### D35. An imperative chart controller
+
+React never re-renders the chart. `ChartController` owns one Lightweight Charts instance and receives data and settings.
+
+- **Panes:** 0 is price plus overlays, 1 is volume (as the brief asks), and 2+ are oscillators (RSI, MACD), with stretch factors 4 : 0.9 : 1.3.
+- **Gotcha:** Lightweight Charts deletes a pane when its last series is removed. Changing chart type therefore adds the new series _before_ removing the old one, and MACD's three series attach through the pane object. Without that, volume landed in the price pane.
+
+### D36. Price formatting
+
+Prices use a custom formatter at tick-size precision in the user's number format (axis, last-price label, legend). Volume uses K/M/B suffixes in every locale, with only the decimal separator localized, because German's "Mrd." overflowed the fixed watchlist column.
+
+### D37. Drawings
+
+- **Anchors:** stored as (time in seconds, price), snapped to bars. With the magnet on they also snap to O/H/L/C.
+- **Coordinates:** time maps to pixels through fractional logical indices, so rays and lines extend past the last bar where the chart has no timestamps.
+- **Scope:** saved per symbol and shared across timeframes, as in TradingView.
+- **Rendering:** a pane primitive on the chart canvas. Only the active pane places new drawings.
+- **Interaction:** click-click to place (a drag still pans), drag a handle or the body to edit, Delete to remove with undo, Esc to cancel.
+
+### D38. Alerts
+
+- **Rule:** `shouldTrigger` is pure. "above"/"below" fire on reaching the level; "cross" fires when consecutive prices straddle it.
+- **Lifecycle:** one-shot. A triggered alert deactivates and records `triggered_at`, and you can re-arm it.
+- **Evaluation:** runs on `background: true` streams, so alerts work while the tab is hidden. The row model matches the `alerts` table, so a server worker can take over in a later phase.
+- **Notifications:** permission is requested on the first alert you create (a user gesture), never on load. The sound is two synthesized tones with no audio asset, and it can be turned off (`alertSound` setting).
+
+### D39. Multi-chart
+
+There are four persisted pane slots (symbol and timeframe each). Chart type, scale mode and indicators are layout-wide for v1; per-pane indicator sets can come later. Symbol sync defaults off and crosshair sync defaults on. The active pane has an accent ring and receives watchlist clicks and top-bar changes.
+
+### D40. Attribution
+
+The license-sanctioned `layout.attributionLogo` (a small TradingView mark linking to tradingview.com, bottom-left of the chart) satisfies the Lightweight Charts NOTICE requirement. The status bar stays clean.

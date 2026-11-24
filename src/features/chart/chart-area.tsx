@@ -1,43 +1,42 @@
 "use client";
 
-import { parseSymbolKey, useChart } from "./chart-store";
-import { CHART_TYPE_META } from "./chart-meta";
+import { cn } from "@/lib/utils/cn";
+import { ChartOverlays } from "./chart-overlays";
+import { PANE_COUNT, useChart } from "./chart-store";
+import { ChartView } from "./chart-view";
 
-/**
- * Chart surface placeholder. Phase 4 mounts Lightweight Charts here
- * (with indicator panes as native LWC panes below the price pane).
- */
+const GRID: Record<string, string> = {
+  "1": "grid-cols-1 grid-rows-1",
+  "2h": "grid-cols-2 grid-rows-1",
+  "2x2": "grid-cols-2 grid-rows-2",
+};
+
+/** 1, 2 (side by side) or 2×2 charts. The active pane receives symbol/timeframe changes. */
 export function ChartArea() {
-  const { symbol } = parseSymbolKey(useChart((s) => s.symbol));
-  const timeframe = useChart((s) => s.timeframe);
-  const chartType = useChart((s) => s.chartType);
+  const layoutMode = useChart((s) => s.layoutMode);
+  const panes = useChart((s) => s.panes);
+  const active = useChart((s) => s.activePane);
+  const setActive = useChart((s) => s.setActivePane);
+  const multi = layoutMode !== "1";
 
   return (
-    <section aria-label="Chart" className="relative flex h-full flex-col bg-panel">
-      {/* Grid echoes the chart's own gridlines so the placeholder reads as a chart surface. */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 [background-image:linear-gradient(var(--chart-grid)_1px,transparent_1px),linear-gradient(90deg,var(--chart-grid)_1px,transparent_1px)] [background-size:80px_64px]"
-      />
-      <div className="relative flex items-center gap-2 px-3 pt-2.5 text-cell text-fg-muted">
-        <span className="font-medium text-fg">{symbol}</span>
-        <span>·</span>
-        <span className="num">{timeframe}</span>
-        <span>·</span>
-        <span>Binance</span>
-        <span className="ml-1 inline-flex items-center text-fg-subtle [&_svg]:size-3.5">
-          {CHART_TYPE_META[chartType].icon}
-        </span>
-      </div>
-      <div className="relative flex flex-1 items-center justify-center">
-        <div className="max-w-xs text-center">
-          <p className="text-ui font-medium text-fg">Chart engine connects in Phase 4</p>
-          <p className="mt-1 text-cell text-fg-muted">
-            The layout, toolbar and settings are live. Resize the panels, collapse the sidebar with{" "}
-            <span className="whitespace-nowrap">⌥W</span>, and try both themes.
-          </p>
+    <section aria-label="Charts" className={cn("grid h-full gap-px bg-app", GRID[layoutMode])}>
+      {panes.slice(0, PANE_COUNT[layoutMode]).map((p, i) => (
+        <div
+          key={p.id}
+          onPointerDownCapture={() => i !== active && setActive(i)}
+          className={cn(
+            "relative min-h-0 min-w-0 bg-panel",
+            multi &&
+              i === active &&
+              "after:pointer-events-none after:absolute after:inset-0 after:z-20 after:ring-1 after:ring-accent after:ring-inset",
+          )}
+        >
+          <ChartView paneIndex={i} symbol={p.symbol} timeframe={p.timeframe}>
+            {(controller) => <ChartOverlays controller={controller} paneIndex={i} symbol={p.symbol} />}
+          </ChartView>
         </div>
-      </div>
+      ))}
     </section>
   );
 }

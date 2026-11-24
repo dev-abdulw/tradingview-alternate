@@ -47,13 +47,28 @@ export function formatChange(value: number, decimals: number, locale = "en-US"):
   return abs;
 }
 
-/** Compact volume: 1.23K, 45.6M, 7.89B. */
+/**
+ * Compact volume: 1.23K, 45.60M, 7.89B. Suffixes stay K/M/B in every locale
+ * (only the decimal separator changes) so the fixed-width column never truncates
+ * — e.g. German's "Mrd." would overflow.
+ */
 export function formatVolume(value: number, locale = "en-US"): string {
-  return formatter(locale, {
-    notation: "compact",
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-  }).format(value);
+  const abs = Math.abs(value);
+  const [div, suffix] =
+    abs >= 1e12
+      ? [1e12, "T"]
+      : abs >= 1e9
+        ? [1e9, "B"]
+        : abs >= 1e6
+          ? [1e6, "M"]
+          : abs >= 1e3
+            ? [1e3, "K"]
+            : [1, ""];
+  const digits = div === 1 ? 0 : 2;
+  return (
+    formatter(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value / div) +
+    suffix
+  );
 }
 
 /** Funding rate fraction → "0.0111%" (4 decimals, as exchanges display it). */

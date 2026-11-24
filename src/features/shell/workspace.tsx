@@ -10,6 +10,8 @@ import {
   usePanelRef,
   type PanelSize,
 } from "react-resizable-panels";
+import { AlertDialog } from "@/features/alerts/alert-dialog";
+import { AlertEngine } from "@/features/alerts/alert-engine";
 import { ChartArea } from "@/features/chart/chart-area";
 import { CommandPalette } from "@/features/search/command-palette";
 import { SettingsDialog } from "@/features/settings/settings-dialog";
@@ -134,6 +136,8 @@ export function Workspace() {
       </div>
       <CommandPalette />
       <SettingsDialog />
+      <AlertDialog />
+      <AlertEngine />
     </ShellContext>
   );
 }

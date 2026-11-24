@@ -4,7 +4,9 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Bell, Flag, ListPlus, Pencil, Trash2, X } from "lucide-react";
 import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useUi } from "@/features/shell/ui-store";
 import { useTickFlash } from "@/lib/hooks/use-tick-flash";
+import { tickerFeed } from "@/lib/market-data/live/feeds";
 import { useTicker } from "@/lib/market-data/hooks";
 import { formatChange, formatPercent, formatPrice, formatVolume } from "@/lib/market-data/precision";
 import type { Instrument, SymbolKey } from "@/lib/market-data/types";
@@ -23,7 +25,6 @@ import {
   MenuTrigger,
 } from "@/ui/menu";
 import { Skeleton } from "@/ui/skeleton";
-import { toast } from "@/ui/toast";
 import { FlagDot, FlagMenuItems } from "./flags";
 import { SymbolIcon } from "./symbol-icon";
 import { COLUMNS, type Column } from "./watchlist-prefs";
@@ -187,7 +188,11 @@ export const SymbolRow = memo(function SymbolRow(p: SymbolRowProps) {
             <RowAction
               label="Create alert"
               tabIndex={-1}
-              onClick={() => toast("Price alerts arrive in Phase 4")}
+              onClick={() =>
+                useUi
+                  .getState()
+                  .openAlert({ symbol: p.symbolKey, price: tickerFeed.store.get(p.symbolKey)?.last ?? null })
+              }
             >
               <Bell />
             </RowAction>

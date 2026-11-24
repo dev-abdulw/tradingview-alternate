@@ -38,6 +38,8 @@ describe("precision", () => {
     expect(formatChange(-1184.2, 2)).toBe("−1,184.20");
     expect(formatFundingRate(0.00001109)).toBe("+0.0011%");
     expect(formatVolume(1758249642)).toBe("1.76B");
+    expect(formatVolume(814_820_000, "de-DE")).toBe("814,82M");
+    expect(formatVolume(950)).toBe("950");
   });
 });
 

@@ -2,7 +2,7 @@
 
 A multi-asset charting and watchlist app for crypto, gold, silver and tokenized US stocks, using Binance public market data.
 
-> Status: **Phase 3 (watchlists and search)** complete. See `docs/decisions.md` and `docs/market-data.md`. Live debug page at `/debug`.
+> Status: **Phase 4 (chart)** complete. See `docs/decisions.md` and `docs/market-data.md`. Live debug page at `/debug`.
 
 ## Quick start
 

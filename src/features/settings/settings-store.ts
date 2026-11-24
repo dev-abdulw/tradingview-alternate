@@ -24,6 +24,7 @@ export const settingsSchema = z.object({
   numberFormat: z.enum(NUMBER_FORMATS),
   defaultTimeframe: z.enum(TIMEFRAMES),
   favoriteTimeframes: z.array(z.enum(TIMEFRAMES)),
+  alertSound: z.boolean(),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
@@ -36,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   numberFormat: "en-US",
   defaultTimeframe: "1h",
   favoriteTimeframes: ["5m", "15m", "1h", "4h", "1D"],
+  alertSound: true,
 };
 
 type SettingsActions = {

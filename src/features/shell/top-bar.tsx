@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  Activity,
-  Bell,
-  ChevronDown,
-  LayoutDashboard,
-  LogIn,
-  PanelRight,
-  Search,
-  Settings2,
-  Keyboard,
-} from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogIn, PanelRight, Search, Settings2, Keyboard } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CHART_TYPE_META, LAYOUT_META } from "@/features/chart/chart-meta";
@@ -21,7 +11,9 @@ import {
   type ChartType,
   type LayoutMode,
 } from "@/features/chart/chart-store";
+import { IndicatorsMenu } from "@/features/chart/indicators-menu";
 import { TimeframePicker } from "@/features/chart/timeframe-picker";
+import { AlertsButton } from "@/features/alerts/alert-dialog";
 import { SymbolHeader } from "@/features/symbol/symbol-header";
 import { formatHotkey } from "@/lib/hooks/use-hotkeys";
 import { useConnectionStatus } from "@/lib/market-data/hooks";
@@ -31,6 +23,7 @@ import { LogoMark } from "@/ui/icons";
 import { Kbd } from "@/ui/kbd";
 import {
   Menu,
+  MenuCheckboxItem,
   MenuContent,
   MenuItem,
   MenuLabel,
@@ -73,12 +66,9 @@ export function TopBar() {
       <TimeframePicker />
       <Divider />
       <ChartTypeMenu />
-      <Button variant="ghost" size="sm" onClick={() => comingSoon("Indicators", 4)}>
-        <Activity />
-        <span className="hidden xl:inline">Indicators</span>
-      </Button>
+      <IndicatorsMenu />
       <LayoutMenu />
-      <IconButton label="Alerts" icon={<Bell />} onClick={() => comingSoon("Price alerts", 4)} />
+      <AlertsButton />
 
       <div className="flex-1" />
 
@@ -126,6 +116,8 @@ function ChartTypeMenu() {
 
 function LayoutMenu() {
   const layoutMode = useChart((s) => s.layoutMode);
+  const syncSymbol = useChart((s) => s.syncSymbol);
+  const syncCrosshair = useChart((s) => s.syncCrosshair);
   const setLayoutMode = useChart((s) => s.setLayoutMode);
   return (
     <Menu>
@@ -146,6 +138,22 @@ function LayoutMenu() {
             </MenuRadioItem>
           ))}
         </MenuRadioGroup>
+        <MenuSeparator />
+        <MenuLabel>Sync across charts</MenuLabel>
+        <MenuCheckboxItem
+          checked={syncSymbol}
+          onCheckedChange={(v) => useChart.getState().setSync({ syncSymbol: v === true })}
+          onSelect={(e) => e.preventDefault()}
+        >
+          Symbol
+        </MenuCheckboxItem>
+        <MenuCheckboxItem
+          checked={syncCrosshair}
+          onCheckedChange={(v) => useChart.getState().setSync({ syncCrosshair: v === true })}
+          onSelect={(e) => e.preventDefault()}
+        >
+          Crosshair
+        </MenuCheckboxItem>
       </MenuContent>
     </Menu>
   );
