@@ -124,6 +124,12 @@
     transform: scale(0.97) translateY(-2px);
   }
 }
+@keyframes sheet-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
 @keyframes shimmer {
   0%,
   100% {

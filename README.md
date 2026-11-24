@@ -1,65 +1,146 @@
 # Markets
 
-A multi-asset charting and watchlist app for crypto, gold, silver and tokenized US stocks, using Binance public market data.
+Fast, keyboard-first charts and watchlists for **crypto**, **tokenized gold** (PAXG, XAUT) and **tokenized US stocks** (Binance bStocks), with live Binance market data. It runs on desktop, tablet and phone.
 
-> Status: **Phase 4 (chart)** complete. See `docs/decisions.md` and `docs/market-data.md`. Live debug page at `/debug`.
+> **Status:** Phases 1–4 and 6 are complete. Accounts and sync (Phase 5) are deferred by choice; data lives in your browser, with JSON export/import.
+> Design decisions: [`docs/decisions.md`](docs/decisions.md) · Binance findings: [`docs/market-data.md`](docs/market-data.md) · Deploying: [`docs/deployment.md`](docs/deployment.md)
 
 ## Quick start
 
 ```bash
 pnpm install
-pnpm dev            # http://localhost:3000  ·  design system at /design
+pnpm dev          # http://localhost:3000
 ```
 
-Requires Node ≥ 22.12 and pnpm 11.
+Requires **Node ≥ 22.12** and **pnpm 11**. No API keys: market data comes from Binance's public endpoints, called directly from the browser.
+
+| Page      | What it is                                                                 |
+| --------- | -------------------------------------------------------------------------- |
+| `/`       | The app                                                                    |
+| `/design` | Design system: tokens, contrast results and every component in both themes |
+| `/debug`  | Live market-data internals: sockets, ref counts and bStock discovery       |
+
+### Environment variables
+
+| Name                   | Required      | Default                 | Purpose                                                         |
+| ---------------------- | ------------- | ----------------------- | --------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL` | In production | `http://localhost:3000` | Absolute URLs for Open Graph images, the sitemap and robots.txt |
 
 ## Scripts
 
-| Script                         | What it does                                                                   |
-| ------------------------------ | ------------------------------------------------------------------------------ |
-| `pnpm dev` / `build` / `start` | Next.js dev server / production build / serve                                  |
-| `pnpm check`                   | typecheck + lint + contrast + unit tests                                       |
-| `pnpm typecheck`               | Generates route types, then `tsc --noEmit` (strict)                            |
-| `pnpm lint`                    | ESLint (blocks `any` and hex colors in components)                             |
-| `pnpm test`                    | Vitest unit tests                                                              |
-| `pnpm tokens`                  | Regenerates `src/app/tokens.css` from `src/ui/tokens/tokens.ts`                |
-| `pnpm contrast`                | Checks every token text/background pair against WCAG AA (`--all` to list them) |
-| `pnpm format`                  | Prettier (with Tailwind class sorting)                                         |
+| Script                         | What it does                                                                            |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| `pnpm dev` / `build` / `start` | Dev server / production build / serve the build                                         |
+| `pnpm check`                   | Typecheck + lint + contrast + unit tests (run before every commit)                      |
+| `pnpm test`                    | Vitest unit tests                                                                       |
+| `pnpm e2e`                     | Playwright end-to-end tests against a production build (desktop + phone; needs network) |
+| `pnpm typecheck`               | Generates route types, then strict `tsc`                                                |
+| `pnpm lint`                    | ESLint (bans `any` and hex colors in components)                                        |
+| `pnpm tokens`                  | Regenerates `src/app/tokens.css` from `src/ui/tokens/tokens.ts`                         |
+| `pnpm contrast`                | Checks every token text/background pair against WCAG AA                                 |
+| `pnpm format`                  | Prettier, with Tailwind class sorting                                                   |
 
-## Structure
+## Features
+
+- **Markets:** every Binance spot pair. Tokenized stocks and gold are detected at runtime from `exchangeInfo` and labelled **Crypto / Metal / Stock**.
+- **Watchlists:**
+  - Multiple lists with sections and flags that mark a symbol across lists.
+  - Drag to reorder; sortable, optional columns.
+  - Live tick flashes; virtualized (200 rows scroll at 60 fps).
+  - Undo for every delete.
+- **Search:** ⌘K / `/`. Fuzzy, volume-aware ranking, category tabs, recents and an "Add to list" picker.
+- **Chart:** Lightweight Charts v5.
+  - Six chart types, a volume pane, and timezone- and locale-aware axes.
+  - Older history loads as you scroll left.
+  - Linear, log and % scales.
+  - Indicators: SMA, EMA, Bollinger Bands, VWAP, RSI, MACD.
+  - Drawings: horizontal line, trend line, ray, rectangle, Fibonacci.
+  - 1 / 2 / 2×2 layouts with symbol and crosshair sync.
+- **Alerts:** above / below / crossing. Toast, browser notification and an optional sound. Works in a background tab.
+- **Phone and tablet:** bottom tab bar, swipe to remove or flag, long-press to drag, slide-over watchlist on tablets.
+- **Settings:** theme (dark / light / system), colorblind-safe up/down colors, density, time zone (default Asia/Karachi), number format, default timeframe and backup.
+
+### Keyboard
+
+Press `?` in the app for the full sheet.
+
+| Where                      | Keys                                                                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Anywhere                   | `⌘K` / `Ctrl+K` or `/` search · `⌥W` toggle watchlist · `⌥I` toggle details · `⌘,` settings · `?` shortcuts                                            |
+| Watchlist (focus the list) | `↑` `↓` `Home` `End` select and chart · `⌥↑` `⌥↓` reorder · `⌫` remove (with undo)                                                                     |
+| Search                     | `↑` `↓` move · `↵` open chart (or add, from the list's +) · `⇧↵` add to list · `Tab` category                                                          |
+| Chart                      | `T` trend line · `R` ray · `H` horizontal line · `B` rectangle · `F` Fibonacci · `Esc` cancel / deselect · `⌫` delete drawing · right-click for alerts |
+
+## Architecture
 
 ```
 src/
-  app/                 routes (/, /design), root layout, globals.css, generated tokens.css
-  ui/                  presentational design-system components (Radix + tokens)
-    tokens/            token source, color math, contrast checker, CSS generator
+  app/                  routes, root layout, generated tokens.css, OG image, icons, manifest, robots, sitemap
+  ui/                   presentational design-system components (Radix + tokens). No business logic.
+    tokens/             token source → CSS generator → WCAG contrast checker
   features/
-    shell/             workspace layout, top bar, drawing rail, status bar
-    settings/          settings store, theme boot script, settings dialog
-    chart/  watchlist/  search/  symbol/   (filled in by Phases 2–4)
+    shell/              desktop / tablet / phone shells, top bar, banners, shortcut sheet
+    watchlist/          store (optimistic + undo), virtualized drag-sortable list, list management
+    search/             ⌘K command palette, recents
+    chart/              ChartController (imperative Lightweight Charts owner), legend, indicators UI,
+                        drawings (geometry · pane primitive · store), multi-chart grid
+    alerts/             store, client-side engine, dialog and list
+    symbol/             live symbol header, details panel
+    settings/           settings store, theme boot script, settings form
   lib/
-    persistence/       KeyValueStore seam (localStorage today; synced in Phase 5)
-    hooks/             shared hooks (hotkeys)
-scripts/               build-tokens.ts, check-contrast.ts
-docs/decisions.md      design decisions and their reasoning
+    market-data/        provider interface + registry, Binance adapters, WebSocket StreamManager,
+                        candle cache, frame-batched live store, precision, search ranking, React hooks
+    indicators/         pure, tested indicator math (Pine-compatible)
+    alerts/             pure alert evaluation (shared with a future server worker)
+    persistence/        KeyValueStore, WatchlistRepository, CollectionRepository, fractional ordering, backup
+    hooks/              hotkeys, media queries, tick flash
+e2e/                    Playwright tests (desktop + phone, axe accessibility scan)
+scripts/                build-tokens.ts, check-contrast.ts
+docs/                   decisions, market-data findings, deployment
 ```
 
-## Design tokens
+### Data flow
 
-Edit colors only in `src/ui/tokens/tokens.ts`, then run `pnpm tokens && pnpm contrast`. Components use the mapped Tailwind utilities: `bg-panel`, `bg-elevated`, `text-fg`, `text-fg-muted`, `text-fg-subtle`, `border-line`, `text-up`, `text-down`, `bg-accent-solid`, and so on. Never use raw colors.
+1. **REST.** Adapters call Binance from the browser and validate every response with zod at the boundary.
+2. **WebSocket.** One `StreamManager` per market handles:
+   - ref-counted, batched SUBSCRIBE/UNSUBSCRIBE within Binance's rate limits;
+   - jittered reconnect and resubscribe, and a planned reconnect before the 24h limit;
+   - liveness checks, host failover, and pausing streams while the tab is hidden.
+3. **Live store.** Ticks land in a `LiveStore` that notifies each symbol at most once per frame and ≤10×/s. React rows read it through `useSyncExternalStore`, so a burst of ticks never re-renders the whole list.
+4. **Candles.** `CandleCache` serves cache hits instantly, merges live klines at candle boundaries, refetches gaps after reconnects and pages older history.
+
+### Persistence
+
+UI code never touches `localStorage`. Stores talk to interfaces:
+
+- `KeyValueStore`: preferences and layout sizes.
+- `WatchlistRepository`: row-level mutations with fractional positions, so a reorder writes one row.
+- `CollectionRepository<T>`: drawings and alerts.
+
+Each has a local implementation today. Row shapes mirror the planned Postgres tables, so a Supabase implementation can be dropped in later without UI changes.
 
 ## Adding a data provider
 
-1. Implement `MarketDataProvider` (`src/lib/market-data/types.ts`) in `src/lib/market-data/<provider>/`, validating responses with zod at the boundary.
-2. Reuse `StreamManager` if the source speaks a subscribe/unsubscribe WebSocket protocol, and `WeightLimiter` / `getJson` for REST.
-3. Register it with `registerProvider("<provider>:<market>", () => new MyProvider())` in `src/lib/market-data/registry.ts`.
+1. Implement `MarketDataProvider` (`src/lib/market-data/types.ts`) in `src/lib/market-data/<provider>/`. Validate responses with zod at the boundary.
+2. Reuse `StreamManager` if the source speaks a subscribe/unsubscribe WebSocket protocol, and `WeightLimiter` / `getJson` for REST budgets and retries.
+3. Register it in `src/lib/market-data/registry.ts` with `registerProvider("<provider>:<market>", () => new MyProvider())` and add it to `ENABLED_MARKETS`.
 
-Symbols are addressed everywhere as `provider:market:symbol`, so the UI picks the new provider up without changes.
+Symbols are addressed everywhere as `provider:market:symbol`, so the watchlist, search, chart and alerts pick up the new provider with no UI changes.
 
-## Keyboard
+## Testing
 
-| Where                      | Keys                                                                                          |
-| -------------------------- | --------------------------------------------------------------------------------------------- |
-| Anywhere                   | `⌘K` / `Ctrl+K` or `/` search · `⌥W` toggle watchlist · `⌥I` toggle details · `⌘,` settings   |
-| Watchlist (focus the list) | `↑` `↓` `Home` `End` select and chart · `⌥↑` `⌥↓` reorder · `⌫` remove (with undo)            |
-| Search                     | `↑` `↓` move · `↵` open chart (or add, from the list's +) · `⇧↵` add to list · `Tab` category |
+- **Unit (Vitest, 133 tests):**
+  - stream manager: ref counts, batching, rate limits, reconnect/resubscribe, 24h limit, liveness, failover, offline, hidden tab;
+  - Binance adapters on real `exchangeInfo` samples;
+  - indicators vs an independent Python implementation and StockCharts' published RSI;
+  - candle boundaries and paging;
+  - watchlist store, fractional ordering, drawing geometry, alert rules, backup, settings.
+- **End-to-end (Playwright, 13 tests):**
+  - load and live prices, search and add, reorder after reload, undo;
+  - no price jitter, cached switches under 300ms;
+  - indicators, drawings after reload, alert triggering, 2×2 layout;
+  - the phone flow and an axe accessibility scan.
+
+---
+
+Market data comes from Binance public APIs, may be delayed, and is not financial advice. Charts by [TradingView Lightweight Charts](https://www.tradingview.com/lightweight-charts/) (Apache-2.0).

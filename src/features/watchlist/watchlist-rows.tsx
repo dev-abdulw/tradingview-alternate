@@ -109,127 +109,205 @@ export type SymbolRowProps = {
   onRemove: (item: WatchlistSymbolRow) => void;
   onFlag: (key: SymbolKey, color: WatchlistSymbolRow["flag_color"]) => void;
   onAddToList: (listId: string, key: SymbolKey) => void;
+  /** Touch device: swipe actions instead of hover actions. */
+  touch?: boolean;
 };
+
+const SWIPE_TRIGGER = 88;
+
+/** Horizontal swipe on touch: left → remove, right → toggle red flag. Vertical scrolling is untouched. */
+function useSwipe(enabled: boolean, onLeft: () => void, onRight: () => void) {
+  const [dx, setDx] = useState(0);
+  const start = useRef<{ x: number; y: number; locked: boolean } | null>(null);
+  if (!enabled) return { dx: 0, handlers: {} };
+  return {
+    dx,
+    handlers: {
+      onPointerDown: (e: React.PointerEvent) => {
+        if (e.pointerType === "touch") start.current = { x: e.clientX, y: e.clientY, locked: false };
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        const s = start.current;
+        if (!s) return;
+        const ddx = e.clientX - s.x;
+        const ddy = e.clientY - s.y;
+        if (!s.locked) {
+          if (Math.abs(ddy) > 10 && Math.abs(ddy) > Math.abs(ddx)) {
+            start.current = null; // it's a scroll
+            return;
+          }
+          if (Math.abs(ddx) > 10) s.locked = true;
+          else return;
+        }
+        setDx(Math.max(-140, Math.min(140, ddx)));
+      },
+      onPointerUp: () => {
+        if (start.current?.locked) {
+          if (dx <= -SWIPE_TRIGGER) onLeft();
+          else if (dx >= SWIPE_TRIGGER) onRight();
+        }
+        start.current = null;
+        setDx(0);
+      },
+      onPointerCancel: () => {
+        start.current = null;
+        setDx(0);
+      },
+    },
+  };
+}
 
 export const SymbolRow = memo(function SymbolRow(p: SymbolRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: p.item.id,
     disabled: p.dragDisabled,
   });
+  const swipe = useSwipe(
+    !!p.touch && !isDragging,
+    () => p.onRemove(p.item),
+    () => p.onFlag(p.symbolKey, p.item.flag_color ? null : "red"),
+  );
   const style: CSSProperties = {
     gridTemplateColumns: p.gridTemplate,
     height: p.height,
-    transform: CSS.Translate.toString(transform),
-    transition,
+    transform: swipe.dx ? `translateX(${swipe.dx}px)` : CSS.Translate.toString(transform),
+    transition: swipe.dx ? undefined : transition,
   };
   const name = p.instrument?.displayName ?? p.item.symbol;
   const quote = p.instrument?.quote;
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
+    <>
+      {swipe.dx !== 0 && (
         <div
-          ref={setNodeRef}
-          {...attributes}
-          {...listeners}
-          id={p.rowId}
-          role="row"
-          aria-selected={p.selected}
-          data-symbol={p.symbolKey}
-          style={style}
-          tabIndex={-1}
-          onClick={() => p.onSelect(p.symbolKey)}
-          className={cn(
-            "group/row relative grid cursor-default items-center gap-2 pr-3 pl-3 select-none",
-            "hover:bg-hover",
-            p.selected && "bg-active hover:bg-active",
-            isDragging && "z-10 bg-elevated shadow-popover",
-          )}
+          aria-hidden="true"
+          className="absolute inset-0 flex items-center justify-between px-4 text-cell font-medium"
         >
-          {p.selected && <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-accent" />}
-          <span role="gridcell" className="flex min-w-0 items-center gap-2">
-            <SymbolIcon name={name} assetClass={p.instrument?.assetClass} />
-            <span className="truncate text-cell font-medium text-fg">{name}</span>
-            {quote && quote !== "USDT" && <span className="text-meta text-fg-subtle">{quote}</span>}
-            {p.item.flag_color && <FlagDot color={p.item.flag_color} />}
-          </span>
-          <LiveCells
-            symbolKey={p.symbolKey}
-            decimals={p.instrument?.priceDecimals}
-            columns={p.columns}
-            locale={p.locale}
-          />
-
-          {/* Quick actions overlay the right edge on hover — no layout shift. */}
-          <div
+          <span
             className={cn(
-              "pointer-events-none absolute inset-y-0 right-0 flex items-center gap-0.5 pr-1.5 pl-8 opacity-0",
-              "bg-linear-to-r from-transparent via-hover via-30% to-hover transition-opacity duration-[var(--motion-fast)]",
-              "group-hover/row:pointer-events-auto group-hover/row:opacity-100",
-              p.selected && "via-active to-active",
+              "flex items-center gap-1.5 text-flag-red",
+              swipe.dx < SWIPE_TRIGGER && "opacity-50",
             )}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
           >
-            <Menu>
-              <MenuTrigger asChild>
-                <RowAction label="Flag" tabIndex={-1}>
-                  <Flag />
-                </RowAction>
-              </MenuTrigger>
-              <MenuContent align="end" className="w-40">
-                <FlagMenuItems
-                  current={p.item.flag_color}
-                  onChange={(c) => p.onFlag(p.symbolKey, c)}
-                  Item={MenuItem}
-                />
-              </MenuContent>
-            </Menu>
-            <RowAction
-              label="Create alert"
-              tabIndex={-1}
-              onClick={() =>
-                useUi
-                  .getState()
-                  .openAlert({ symbol: p.symbolKey, price: tickerFeed.store.get(p.symbolKey)?.last ?? null })
-              }
-            >
-              <Bell />
-            </RowAction>
-            <RowAction label={`Remove ${name}`} tabIndex={-1} onClick={() => p.onRemove(p.item)}>
-              <X />
-            </RowAction>
-          </div>
+            <Flag className="size-4 fill-current" /> {p.item.flag_color ? "Unflag" : "Flag"}
+          </span>
+          <span
+            className={cn("flex items-center gap-1.5 text-danger", swipe.dx > -SWIPE_TRIGGER && "opacity-50")}
+          >
+            Remove <Trash2 className="size-4" />
+          </span>
         </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-52">
-        <ContextMenuLabel>{name}</ContextMenuLabel>
-        <FlagMenuItems
-          current={p.item.flag_color}
-          onChange={(c) => p.onFlag(p.symbolKey, c)}
-          Item={ContextMenuItem}
-        />
-        {p.otherLists.length > 0 && (
-          <>
-            <ContextMenuSeparator />
-            <ContextMenuLabel>Add to list</ContextMenuLabel>
-            {p.otherLists.map((l) => (
-              <ContextMenuItem
-                key={l.id}
-                icon={<ListPlus />}
-                onSelect={() => p.onAddToList(l.id, p.symbolKey)}
+      )}
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <div
+            ref={setNodeRef}
+            {...attributes}
+            {...listeners}
+            id={p.rowId}
+            role="row"
+            aria-selected={p.selected}
+            data-symbol={p.symbolKey}
+            style={style}
+            tabIndex={-1}
+            onClick={() => p.onSelect(p.symbolKey)}
+            {...swipe.handlers}
+            className={cn(
+              "group/row relative grid cursor-default items-center gap-2 bg-panel pr-3 pl-3 select-none",
+              p.touch ? "touch-pan-y active:bg-hover" : "hover:bg-hover",
+              p.selected && "bg-active hover:bg-active",
+              isDragging && "z-10 bg-elevated shadow-popover",
+            )}
+          >
+            {p.selected && <span aria-hidden="true" className="absolute inset-y-0 left-0 w-0.5 bg-accent" />}
+            <span role="gridcell" className="flex min-w-0 items-center gap-2">
+              <SymbolIcon name={name} assetClass={p.instrument?.assetClass} />
+              <span className="truncate text-cell font-medium text-fg">{name}</span>
+              {quote && quote !== "USDT" && <span className="text-meta text-fg-subtle">{quote}</span>}
+              {p.item.flag_color && <FlagDot color={p.item.flag_color} />}
+            </span>
+            <LiveCells
+              symbolKey={p.symbolKey}
+              decimals={p.instrument?.priceDecimals}
+              columns={p.columns}
+              locale={p.locale}
+            />
+
+            {/* Quick actions overlay the right edge on hover — no layout shift. (Touch uses swipe.) */}
+            {!p.touch && (
+              <div
+                role="gridcell"
+                className={cn(
+                  "pointer-events-none absolute inset-y-0 right-0 flex items-center gap-0.5 pr-1.5 pl-8 opacity-0",
+                  "bg-linear-to-r from-transparent via-hover via-30% to-hover transition-opacity duration-[var(--motion-fast)]",
+                  "group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+                  p.selected && "via-active to-active",
+                )}
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
               >
-                {l.name}
-              </ContextMenuItem>
-            ))}
-          </>
-        )}
-        <ContextMenuSeparator />
-        <ContextMenuItem icon={<Trash2 />} destructive shortcut="⌫" onSelect={() => p.onRemove(p.item)}>
-          Remove from list
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+                <Menu>
+                  <MenuTrigger asChild>
+                    <RowAction label="Flag" tabIndex={-1}>
+                      <Flag />
+                    </RowAction>
+                  </MenuTrigger>
+                  <MenuContent align="end" className="w-40">
+                    <FlagMenuItems
+                      current={p.item.flag_color}
+                      onChange={(c) => p.onFlag(p.symbolKey, c)}
+                      Item={MenuItem}
+                    />
+                  </MenuContent>
+                </Menu>
+                <RowAction
+                  label="Create alert"
+                  tabIndex={-1}
+                  onClick={() =>
+                    useUi.getState().openAlert({
+                      symbol: p.symbolKey,
+                      price: tickerFeed.store.get(p.symbolKey)?.last ?? null,
+                    })
+                  }
+                >
+                  <Bell />
+                </RowAction>
+                <RowAction label={`Remove ${name}`} tabIndex={-1} onClick={() => p.onRemove(p.item)}>
+                  <X />
+                </RowAction>
+              </div>
+            )}
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-52">
+          <ContextMenuLabel>{name}</ContextMenuLabel>
+          <FlagMenuItems
+            current={p.item.flag_color}
+            onChange={(c) => p.onFlag(p.symbolKey, c)}
+            Item={ContextMenuItem}
+          />
+          {p.otherLists.length > 0 && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuLabel>Add to list</ContextMenuLabel>
+              {p.otherLists.map((l) => (
+                <ContextMenuItem
+                  key={l.id}
+                  icon={<ListPlus />}
+                  onSelect={() => p.onAddToList(l.id, p.symbolKey)}
+                >
+                  {l.name}
+                </ContextMenuItem>
+              ))}
+            </>
+          )}
+          <ContextMenuSeparator />
+          <ContextMenuItem icon={<Trash2 />} destructive shortcut="⌫" onSelect={() => p.onRemove(p.item)}>
+            Remove from list
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    </>
   );
 });
 
@@ -309,6 +387,7 @@ export const SectionRow = memo(function SectionRow(p: SectionRowProps) {
       </span>
       {!p.editing && (
         <span
+          role="gridcell"
           className="pointer-events-none flex gap-0.5 opacity-0 group-hover/row:pointer-events-auto group-hover/row:opacity-100"
           onPointerDown={(e) => e.stopPropagation()}
         >

@@ -12,12 +12,17 @@ import {
 } from "react-resizable-panels";
 import { AlertDialog } from "@/features/alerts/alert-dialog";
 import { AlertEngine } from "@/features/alerts/alert-engine";
-import { ChartArea } from "@/features/chart/chart-area";
+import { LazyChartArea } from "@/features/chart/lazy";
 import { CommandPalette } from "@/features/search/command-palette";
 import { SettingsDialog } from "@/features/settings/settings-dialog";
 import { SymbolDetailsPanel } from "@/features/symbol/symbol-details-panel";
 import { WatchlistPanel } from "@/features/watchlist/watchlist-panel";
 import { useHotkeys } from "@/lib/hooks/use-hotkeys";
+import { useFormFactor } from "@/lib/hooks/use-media";
+import { ConnectionBanner } from "./connection-banner";
+import { MobileShell } from "./mobile-shell";
+import { ShortcutsDialog } from "./shortcuts-dialog";
+import { TabletShell } from "./tablet-shell";
 import { DrawingToolbar } from "./drawing-toolbar";
 import { layoutStorage } from "./layout-storage";
 import { SHORTCUTS, ShellContext, type ShellControls } from "./shell-context";
@@ -33,10 +38,33 @@ const SIDEBAR_MIN_PX = 260;
  * The trading workspace. Renders only in the browser: panel sizes and
  * preferences live in client storage, so the server sends <ShellSkeleton/>
  * (same geometry) instead of a guess that would shift on hydration.
+ * Desktop ≥1100px, tablet (watchlist in a slide-over) and phone (tab bar).
  */
 export function Workspace() {
   use(browser("Workspace layout is restored from client storage."));
+  const form = useFormFactor();
+  const ui = useUi.getState;
 
+  useHotkeys({
+    [SHORTCUTS.search]: () => ui().setSearchOpen(true),
+    [SHORTCUTS.searchAlt]: () => ui().setSearchOpen(true),
+    [SHORTCUTS.settings]: () => ui().setSettingsOpen(true),
+    [SHORTCUTS.shortcuts]: () => ui().setShortcutsOpen(true),
+  });
+
+  return (
+    <>
+      {form === "desktop" ? <DesktopShell /> : form === "tablet" ? <TabletShell /> : <MobileShell />}
+      <CommandPalette />
+      <SettingsDialog />
+      <AlertDialog />
+      <ShortcutsDialog />
+      <AlertEngine />
+    </>
+  );
+}
+
+function DesktopShell() {
   const sidebarRef = usePanelRef();
   const detailsRef = usePanelRef();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -61,15 +89,9 @@ export function Workspace() {
     else p.collapse();
   }, [detailsRef]);
 
-  const setSearchOpen = useUi((s) => s.setSearchOpen);
-  const setSettingsOpen = useUi((s) => s.setSettingsOpen);
-
   useHotkeys({
-    [SHORTCUTS.search]: () => setSearchOpen(true),
-    [SHORTCUTS.searchAlt]: () => setSearchOpen(true),
     [SHORTCUTS.toggleSidebar]: toggleSidebar,
     [SHORTCUTS.toggleDetails]: toggleDetails,
-    [SHORTCUTS.settings]: () => setSettingsOpen(true),
   });
 
   const controls = useMemo<ShellControls>(
@@ -81,6 +103,7 @@ export function Workspace() {
     <ShellContext value={controls}>
       <div className="flex h-dvh flex-col bg-app">
         <TopBar />
+        <ConnectionBanner />
         <div className="flex min-h-0 flex-1 gap-px">
           <DrawingToolbar />
           <Group
@@ -91,7 +114,9 @@ export function Workspace() {
             onLayoutChanged={outer.onLayoutChanged}
           >
             <Panel id="main" minSize={360}>
-              <ChartArea />
+              <main className="h-full min-w-0">
+                <LazyChartArea />
+              </main>
             </Panel>
             <Separator aria-label="Resize sidebar" />
             <Panel
@@ -134,10 +159,6 @@ export function Workspace() {
         </div>
         <StatusBar />
       </div>
-      <CommandPalette />
-      <SettingsDialog />
-      <AlertDialog />
-      <AlertEngine />
     </ShellContext>
   );
 }

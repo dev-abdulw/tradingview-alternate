@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { THEME_BOOT_SCRIPT } from "@/features/settings/theme";
+import { SITE } from "@/lib/site";
 import { themes } from "@/ui/tokens/tokens";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -12,8 +13,21 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Markets", template: "%s · Markets" },
-  description: "Charts and watchlists for crypto, gold, silver and tokenized stocks, with live Binance data.",
+  metadataBase: new URL(SITE.url),
+  title: { default: SITE.title, template: `%s · ${SITE.name}` },
+  description: SITE.description,
+  applicationName: SITE.name,
+  keywords: ["crypto charts", "watchlist", "Binance", "tokenized stocks", "gold", "technical analysis"],
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    title: SITE.title,
+    description: SITE.description,
+    url: "/",
+  },
+  twitter: { card: "summary_large_image", title: SITE.title, description: SITE.description },
+  appleWebApp: { title: SITE.name, statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {

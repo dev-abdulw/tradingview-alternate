@@ -18,6 +18,7 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useUi } from "@/features/shell/ui-store";
 import { useInstrumentMap } from "@/lib/market-data/hooks";
+import type { SymbolKey } from "@/lib/market-data/types";
 import { cn } from "@/lib/utils/cn";
 import { Button } from "@/ui/button";
 import { IconButton } from "@/ui/icon-button";
@@ -48,7 +49,7 @@ export function useActiveList() {
   return { lists: ordered, active };
 }
 
-export function WatchlistPanel() {
+export function WatchlistPanel({ onSymbolSelected }: { onSymbolSelected?: (key: SymbolKey) => void } = {}) {
   const status = useWatchlists((s) => s.status);
   const error = useWatchlists((s) => s.error);
   const allItems = useWatchlists((s) => s.items);
@@ -146,6 +147,7 @@ export function WatchlistPanel() {
           otherLists={otherLists}
           editingSection={editingSection}
           setEditingSection={setEditingSection}
+          onSymbolSelected={onSymbolSelected}
         />
       )}
 
@@ -268,8 +270,8 @@ function ColumnHeader() {
       <button
         key={col}
         type="button"
-        role="columnheader"
-        aria-sort={isActive ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
+        aria-label={`Sort by ${label}${isActive ? (sort.dir === "asc" ? ", ascending" : ", descending") : ""}`}
+        aria-pressed={isActive}
         title={`Sort by ${label}`}
         onClick={() => cycle(col)}
         className={cn(
@@ -299,7 +301,6 @@ function ColumnHeader() {
 
   return (
     <div
-      role="row"
       className="grid h-7 shrink-0 items-center gap-2 border-y border-line px-3"
       style={{ gridTemplateColumns: gridTemplate(columns) }}
     >

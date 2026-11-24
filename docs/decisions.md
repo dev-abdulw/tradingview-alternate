@@ -218,3 +218,56 @@ There are four persisted pane slots (symbol and timeframe each). Chart type, sca
 ### D40. Attribution
 
 The license-sanctioned `layout.attributionLogo` (a small TradingView mark linking to tradingview.com, bottom-left of the chart) satisfies the Lightweight Charts NOTICE requirement. The status bar stays clean.
+
+## Phases 5 and 6, combined (accounts deferred)
+
+### D41. Accounts deferred; backup replaces sync for now (user decision, 2026-11-24)
+
+Supabase auth, RLS and the guest-to-account migration are postponed, so there are no API routes to rate-limit. Everything is stored in the browser. **Settings → Your data** exports a JSON backup and imports one, replacing rather than merging. The backup holds user data only, never caches, and is validated before anything is overwritten. The repository interfaces stay in place, so accounts remain a drop-in later.
+
+### D42. Three form factors, one codebase
+
+- **Desktop (≥1100px):** resizable panels.
+- **Tablet (768–1099px):** the chart takes the full width; watchlist and details open in a slide-over from the same ⌥W / toggle.
+- **Phone (<768px):** a bottom tab bar (Watchlist · Chart · Alerts · Settings). The watchlist is home and tapping a row opens a full-screen single chart.
+
+The breakpoint is decided in the browser-only workspace, so there's no hydration mismatch. The server skeleton has matching phone and desktop variants switched by CSS.
+
+### D43. Touch interactions
+
+On coarse pointers, rows are 44px tall (the target is ≥40px).
+
+- **Swipe left:** remove, with undo.
+- **Swipe right:** toggle a red flag.
+- **Long-press (250ms):** drag to reorder.
+
+A swipe only engages once the gesture is clearly horizontal, so vertical scrolling never misfires. Hover quick actions are not rendered on touch.
+
+### D44. Connectivity banners
+
+"Offline" shows immediately. "Reconnecting" only after 2.5s, so a normal socket blip never flashes a warning.
+
+### D45. Chart engine is lazy-loaded
+
+Lightweight Charts plus indicators and drawings is the largest part of the bundle, so `ChartArea` and the phone chart are `React.lazy`. On phones the app opens on the watchlist, and the phone skeleton paints the header title from the HTML. Mobile LCP went from **3.9s to 0.8s** (Lighthouse mobile, simulated slow 4G). One run in five measured 3.6s (still scoring 90): a race between the web font loading and the real header mounting, which can make a later, marginally wider paint count as the LCP. If it matters later, `display: "optional"` for Inter removes it at the cost of the fallback font on cold slow loads.
+
+### D46. Accessibility
+
+Lighthouse accessibility is **100** on desktop and mobile, and an axe scan (WCAG 2.1 AA) runs in the e2e suite. Fixes made to get there:
+
+- The watchlist header uses sort buttons (`aria-pressed`, descriptive labels), not `columnheader`s outside the grid.
+- dnd-kit's live region renders in `<body>`.
+- Row actions sit inside `gridcell`s.
+- The chart area is the `<main>` landmark.
+- Indicator legend values are separated by real spaces, so screen readers don't run them together.
+
+### D47. SEO and app metadata
+
+- **Sharing image:** generated at build time with `next/og` from the design tokens. It's a stylised series, not market data.
+- **Icons:** SVG app icon, apple-touch icon, and a `favicon.ico` built with the Python stdlib (no image dependencies).
+- **Discovery:** web manifest, robots (`/debug` and `/design` disallowed) and sitemap.
+- **Base URL:** `NEXT_PUBLIC_SITE_URL` sets `metadataBase`.
+
+### D48. End-to-end tests use live data
+
+Playwright runs against a production build with real Binance data, the only honest test of streaming behavior. Assertions cover structure, behavior and timing, never exact prices. CI retries once.

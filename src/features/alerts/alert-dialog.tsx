@@ -136,11 +136,12 @@ function AlertForm({
   );
 }
 
-/** Top-bar bell: lists active and triggered alerts. */
-export function AlertsButton() {
+/** Active and triggered alerts. Used in the top-bar popover and the phone's Alerts tab. */
+export function AlertsList({ className }: { className?: string }) {
   const rows = useAlerts((s) => s.rows);
   const instruments = useInstrumentMap();
   const locale = useSettings((s) => s.numberFormat);
+  const chartSymbol = useChart((s) => s.symbol);
   const sorted = useMemo(
     () =>
       Object.values(rows).sort(
@@ -150,9 +151,41 @@ export function AlertsButton() {
       ),
     [rows],
   );
-  const active = sorted.filter((a) => a.active).length;
-  const chartSymbol = useChart((s) => s.symbol);
+  return (
+    <div className={cn("flex min-h-0 flex-col", className)}>
+      <div className="flex shrink-0 items-center justify-between border-b border-line px-3 py-2">
+        <span className="text-ui font-medium">Alerts</span>
+        <Button size="xs" onClick={() => useUi.getState().openAlert({ symbol: chartSymbol, price: null })}>
+          New alert
+        </Button>
+      </div>
+      {sorted.length === 0 ? (
+        <div className="px-4 py-8 text-center">
+          <p className="text-ui font-medium text-fg">No alerts yet</p>
+          <p className="mt-1 text-cell text-fg-muted">
+            Right-click a price on the chart, or use the bell on a watchlist row.
+          </p>
+        </div>
+      ) : (
+        <ul className="min-h-0 flex-1 overflow-y-auto py-1">
+          {sorted.map((a) => (
+            <AlertItem
+              key={a.id}
+              a={a}
+              decimals={instruments.get(alertKey(a))?.priceDecimals}
+              name={instruments.get(alertKey(a))?.displayName}
+              locale={locale}
+            />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
+/** Top-bar bell with an active-alert badge. */
+export function AlertsButton() {
+  const active = useAlerts((s) => Object.values(s.rows).filter((a) => a.active).length);
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -169,33 +202,8 @@ export function AlertsButton() {
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="flex items-center justify-between border-b border-line px-3 py-2">
-          <span className="text-ui font-medium">Alerts</span>
-          <Button size="xs" onClick={() => useUi.getState().openAlert({ symbol: chartSymbol, price: null })}>
-            New alert
-          </Button>
-        </div>
-        {sorted.length === 0 ? (
-          <div className="px-4 py-8 text-center">
-            <p className="text-ui font-medium text-fg">No alerts yet</p>
-            <p className="mt-1 text-cell text-fg-muted">
-              Right-click a price on the chart, or use the bell on a watchlist row.
-            </p>
-          </div>
-        ) : (
-          <ul className="max-h-80 overflow-y-auto py-1">
-            {sorted.map((a) => (
-              <AlertItem
-                key={a.id}
-                a={a}
-                decimals={instruments.get(alertKey(a))?.priceDecimals}
-                name={instruments.get(alertKey(a))?.displayName}
-                locale={locale}
-              />
-            ))}
-          </ul>
-        )}
+      <PopoverContent align="end" className="max-h-96 w-80 p-0">
+        <AlertsList className="max-h-96" />
       </PopoverContent>
     </Popover>
   );

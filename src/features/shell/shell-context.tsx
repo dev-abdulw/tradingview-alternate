@@ -23,4 +23,5 @@ export const SHORTCUTS = {
   toggleSidebar: "alt+KeyW",
   toggleDetails: "alt+KeyI",
   settings: "mod+,",
+  shortcuts: "?",
 } as const;

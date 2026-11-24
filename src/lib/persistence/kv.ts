@@ -12,6 +12,8 @@ export interface KeyValueStore {
   get(key: string): string | null;
   set(key: string, value: string): void;
   remove(key: string): void;
+  /** All keys currently stored (used for backup/export). */
+  keys(): string[];
   /** Called when another tab (or a sync source) changes `key`. Returns an unsubscribe fn. */
   subscribe?(key: string, onChange: (value: string | null) => void): () => void;
 }
@@ -26,6 +28,7 @@ export function createMemoryStore(seed: Record<string, string> = {}): KeyValueSt
     get: (k) => data.get(k) ?? null,
     set: (k, v) => void data.set(k, v),
     remove: (k) => void data.delete(k),
+    keys: () => [...data.keys()],
   };
 }
 
@@ -51,6 +54,8 @@ export function createLocalStore(): KeyValueStore {
       }
     },
     remove: (k) => storage.removeItem(k),
+    keys: () =>
+      Array.from({ length: storage.length }, (_, i) => storage.key(i)).filter((k): k is string => k !== null),
     subscribe: (key, onChange) => {
       const handler = (e: StorageEvent) => {
         if (e.storageArea === storage && e.key === key) onChange(e.newValue);

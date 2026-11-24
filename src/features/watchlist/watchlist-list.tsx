@@ -16,6 +16,7 @@ import { defaultRangeExtractor, useVirtualizer, type Range } from "@tanstack/rea
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useChart } from "@/features/chart/chart-store";
 import { useSettings } from "@/features/settings/settings-store";
+import { useCoarsePointer } from "@/lib/hooks/use-media";
 import { useRetainTickers } from "@/lib/market-data/hooks";
 import { tickerFeed } from "@/lib/market-data/live/feeds";
 import type { Instrument, SymbolKey } from "@/lib/market-data/types";
@@ -31,7 +32,9 @@ import { SectionRow, SymbolRow } from "./watchlist-rows";
 import { itemKey, useWatchlists } from "./watchlist-store";
 
 export const SECTION_HEIGHT = 30;
-export const rowHeightFor = (density: string) => (density === "compact" ? 28 : 32);
+/** Touch rows are 44px (≥40px targets); otherwise 32px, or 28px compact. */
+export const rowHeightFor = (density: string, touch = false) =>
+  touch ? 44 : density === "compact" ? 28 : 32;
 
 type ViewRow =
   | { kind: "section"; item: WatchlistSectionRow; count: number }
@@ -83,6 +86,7 @@ export function WatchlistList({
   otherLists,
   editingSection,
   setEditingSection,
+  onSymbolSelected,
 }: {
   items: readonly WatchlistItemRow[];
   instruments: ReadonlyMap<string, Instrument>;
@@ -90,6 +94,8 @@ export function WatchlistList({
   /** Section in rename mode (lifted so "Add section" can open it in edit mode). */
   editingSection: string | null;
   setEditingSection: (id: string | null) => void;
+  /** Called after a row tap/click selects a symbol (phone layout switches to the chart). */
+  onSymbolSelected?: (key: SymbolKey) => void;
 }) {
   const columns = useWatchlistPrefs((s) => s.columns);
   const sort = useWatchlistPrefs((s) => s.sort);
@@ -97,7 +103,15 @@ export function WatchlistList({
   const locale = useSettings((s) => s.numberFormat);
   const selectedKey = useChart((s) => s.symbol);
   const setSymbol = useChart((s) => s.setSymbol);
-  const rowHeight = rowHeightFor(density);
+  const touch = useCoarsePointer();
+  const rowHeight = rowHeightFor(density, touch);
+  const select = useCallback(
+    (key: SymbolKey) => {
+      setSymbol(key);
+      onSymbolSelected?.(key);
+    },
+    [setSymbol, onSymbolSelected],
+  );
   const template = useMemo(() => toGridTemplate(columns), [columns]);
 
   // Sorted views refresh on a slow cadence: rows never jump on every tick.
@@ -244,6 +258,8 @@ export function WatchlistList({
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragCancel={() => setActiveDragIndex(null)}
+        // Keep dnd-kit's live region out of the grid (only rows may live there).
+        accessibility={{ container: typeof document === "undefined" ? undefined : document.body }}
       >
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           <div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
@@ -282,7 +298,8 @@ export function WatchlistList({
                       locale={locale}
                       dragDisabled={dragDisabled}
                       otherLists={otherLists}
-                      onSelect={setSymbol}
+                      onSelect={select}
+                      touch={touch}
                       onRemove={remove}
                       onFlag={flag}
                       onAddToList={addToList}

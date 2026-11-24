@@ -1,6 +1,14 @@
 "use client";
 
-import { ChevronDown, LayoutDashboard, LogIn, PanelRight, Search, Settings2, Keyboard } from "lucide-react";
+import {
+  ChevronDown,
+  Download,
+  LayoutDashboard,
+  PanelRight,
+  Search,
+  Settings2,
+  Keyboard,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CHART_TYPE_META, LAYOUT_META } from "@/features/chart/chart-meta";
@@ -32,7 +40,6 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "@/ui/menu";
-import { toast } from "@/ui/toast";
 import { Tooltip } from "@/ui/tooltip";
 import { ConnectionIndicator } from "./connection-indicator";
 import { SHORTCUTS, useShell } from "./shell-context";
@@ -40,12 +47,6 @@ import { useUi } from "./ui-store";
 
 function Divider() {
   return <div aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-line" />;
-}
-
-function comingSoon(feature: string, phase: number) {
-  toast(`${feature} arrives in Phase ${phase}`, {
-    description: "The shell is in place; the feature lands later.",
-  });
 }
 
 export function TopBar() {
@@ -86,7 +87,7 @@ export function TopBar() {
   );
 }
 
-function ChartTypeMenu() {
+export function ChartTypeMenu() {
   const chartType = useChart((s) => s.chartType);
   const setChartType = useChart((s) => s.setChartType);
   const current = CHART_TYPE_META[chartType];
@@ -218,11 +219,13 @@ function ProfileMenu() {
       <MenuContent align="end" className="w-60">
         <div className="px-2 pt-1.5 pb-2">
           <div className="text-ui font-medium text-fg">Guest</div>
-          <div className="text-cell text-fg-muted">Your data is saved in this browser.</div>
+          <div className="text-cell text-fg-muted">
+            Your data is saved in this browser. Accounts come later.
+          </div>
         </div>
         <MenuSeparator />
-        <MenuItem icon={<LogIn />} onSelect={() => comingSoon("Accounts & sync", 5)}>
-          Sign in to sync
+        <MenuItem icon={<Download />} onSelect={() => useUi.getState().setSettingsOpen(true)}>
+          Back up your data
         </MenuItem>
         <MenuItem
           icon={<Settings2 />}
@@ -231,7 +234,7 @@ function ProfileMenu() {
         >
           Settings
         </MenuItem>
-        <MenuItem icon={<Keyboard />} shortcut="?" onSelect={() => comingSoon("Shortcut sheet", 6)}>
+        <MenuItem icon={<Keyboard />} shortcut="?" onSelect={() => useUi.getState().setShortcutsOpen(true)}>
           Keyboard shortcuts
         </MenuItem>
         <MenuSeparator />

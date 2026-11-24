@@ -313,11 +313,15 @@ function IndicatorRow({
         !config.visible && "opacity-50",
       )}
     >
-      <span className="text-fg-muted">{indicatorLabel(config)}</span>
+      <span className="text-fg-muted">{indicatorLabel(config)}</span>{" "}
       {config.visible && (
         <span className="num flex gap-2" style={{ color }}>
           {shown.map((x, i) => (
-            <span key={i}>{fmt(x)}</span>
+            // Real spaces between values so screen readers (and copy/paste) don't run them together.
+            <span key={i}>
+              {i > 0 && " "}
+              {fmt(x)}
+            </span>
           ))}
         </span>
       )}
